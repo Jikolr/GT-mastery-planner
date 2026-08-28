@@ -92,6 +92,12 @@ npm run check        # Lint, test, and build the desktop bundle
 
 The Windows output is generated in `release/`. Build directories are ignored by Git and should not be committed.
 
+### macOS builds with GitHub Actions
+
+The `Build macOS` workflow creates unsigned packages for both Apple Silicon (`arm64`) and Intel (`x64`). It runs automatically for tags beginning with `v`, or manually from **GitHub → Actions → Build macOS → Run workflow**.
+
+After the workflow finishes, download both artifacts from the workflow summary and attach their `.dmg` or `.zip` files to the matching GitHub Release. Because these builds are not signed or notarized, macOS users may need to right-click the application, select **Open**, and confirm the Gatekeeper warning.
+
 ## Project structure
 
 - `app/game/mastery.ts` — costs, gates, bonuses, ETA, and optimizer engine.
