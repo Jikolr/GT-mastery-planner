@@ -1,6 +1,6 @@
 {
   "name": "guardian-tales-mastery-planner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Offline Windows planner and target optimizer for Guardian Tales mastery upgrades.",
   "author": "Alexandre Corbineau",

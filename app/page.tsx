@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CLASS_IDS,
   CLASS_NAMES,
+  MAX_LEVEL,
   STAT_IDS,
   STAT_NAMES,
   bonusPercent,
@@ -14,6 +15,7 @@ import {
   emptyLevels,
   formatDuration,
   hoursUntilAffordable,
+  isSpeculativeCost,
   optimizeTarget,
   targetDate,
   totalPlannedCost,
@@ -248,7 +250,13 @@ export default function Home() {
   useEffect(() => {
     const timer = setTimeout(() => {
       const saved = safeSaved();
-      try { setPresets(JSON.parse(localStorage.getItem(PRESETS_KEY) ?? "[]") as Preset[]); } catch { setPresets([]); }
+      try {
+        setPresets(
+          JSON.parse(localStorage.getItem(PRESETS_KEY) ?? "[]") as Preset[],
+        );
+      } catch {
+        setPresets([]);
+      }
       if (saved) {
         setGuardianPoints(saved.guardianPoints);
         setIncome(saved.income);
@@ -267,7 +275,9 @@ export default function Home() {
         JSON.stringify({ guardianPoints, income, initial, planned }),
       );
   }, [guardianPoints, income, initial, planned, hydrated]);
-  useEffect(() => { if (hydrated) localStorage.setItem(PRESETS_KEY, JSON.stringify(presets)); }, [presets, hydrated]);
+  useEffect(() => {
+    if (hydrated) localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+  }, [presets, hydrated]);
   useEffect(() => {
     const timer = setInterval(() => setClock(new Date()), 60000);
     return () => clearInterval(timer);
@@ -330,7 +340,7 @@ export default function Home() {
       const next = clone(old);
       const bounded = Math.max(
         initial[classId][statId],
-        Math.min(69, Math.floor(target)),
+        Math.min(MAX_LEVEL, Math.floor(target)),
       );
       while (next[classId][statId] < bounded) {
         const check = canUpgrade(next, classId, statId);
@@ -379,21 +389,39 @@ export default function Home() {
     setTab("optimizer");
   }
   function savePreset() {
-    if (presets.length >= 10) { setNotice({ type: "cost", text: "Preset limit reached (10). Delete one before saving another." }); return; }
-    setPresetName(""); setPresetDialog(true);
+    if (presets.length >= 10) {
+      setNotice({
+        type: "cost",
+        text: "Preset limit reached (10). Delete one before saving another.",
+      });
+      return;
+    }
+    setPresetName("");
+    setPresetDialog(true);
   }
   function confirmPreset() {
     const name = presetName.trim().slice(0, 40);
     if (!name) return;
-    setPresets(old => [...old, { id: crypto.randomUUID(), name, levels: clone(planned) }]);
-    setPresetDialog(false); setPresetName(""); setNotice({ type: "ok", text: `Preset “${name}” saved.` });
+    setPresets((old) => [
+      ...old,
+      { id: crypto.randomUUID(), name, levels: clone(planned) },
+    ]);
+    setPresetDialog(false);
+    setPresetName("");
+    setNotice({ type: "ok", text: `Preset “${name}” saved.` });
   }
   function loadPreset(preset: Preset) {
     const next = clone(initial);
-    for (const c of CLASS_IDS) for (const s of STAT_IDS) next[c][s] = Math.max(initial[c][s], preset.levels[c][s]);
-    setPlanned(next); setTab("planner"); setNotice({ type: "ok", text: `Preset “${preset.name}” loaded.` });
+    for (const c of CLASS_IDS)
+      for (const s of STAT_IDS)
+        next[c][s] = Math.max(initial[c][s], preset.levels[c][s]);
+    setPlanned(next);
+    setTab("planner");
+    setNotice({ type: "ok", text: `Preset “${preset.name}” loaded.` });
   }
-  function deletePreset(id: string) { setPresets(old => old.filter(p => p.id !== id)); }
+  function deletePreset(id: string) {
+    setPresets((old) => old.filter((p) => p.id !== id));
+  }
 
   return (
     <main className="app-shell">
@@ -402,7 +430,7 @@ export default function Home() {
         <div>
           <p className="eyebrow">Guardian Tales Utility</p>
           <h1>
-            Mastery Planner <small>v0.2</small>
+            Mastery Planner <small>v0.3</small>
           </h1>
         </div>
         <span className="save-state">
@@ -423,6 +451,11 @@ export default function Home() {
           Target optimizer
         </button>
       </nav>
+      <div className="speculative-note" role="note">
+        <strong>Estimated levels:</strong> costs for levels 71–90 are
+        speculative projections assuming the observed ×2.5 scaling continues
+        after level 70.
+      </div>
       <section className={`summary-card ${remaining < 0 ? "is-negative" : ""}`}>
         <div className="summary-heading">
           <div>
@@ -430,7 +463,11 @@ export default function Home() {
             <h2>Plan without limits</h2>
           </div>
           <div className="actions">
-            <button className="preset-save-button" onClick={savePreset} disabled={presets.length >= 10}>
+            <button
+              className="preset-save-button"
+              onClick={savePreset}
+              disabled={presets.length >= 10}
+            >
               Save preset ({presets.length}/10)
             </button>
             <button className="ghost-button" onClick={resetPlan}>
@@ -444,7 +481,33 @@ export default function Home() {
             </button>
           </div>
         </div>
-        {presets.length > 0 && <div className="preset-shelf"><div><span>Saved presets</span><small>{presets.length}/10</small></div><div className="preset-list">{presets.map(preset => <div className="preset-chip" key={preset.id}><button onClick={() => loadPreset(preset)} title={`Load ${preset.name}`}>{preset.name}</button><button className="preset-delete" onClick={() => deletePreset(preset.id)} aria-label={`Delete ${preset.name}`}>×</button></div>)}</div></div>}
+        {presets.length > 0 && (
+          <div className="preset-shelf">
+            <div>
+              <span>Saved presets</span>
+              <small>{presets.length}/10</small>
+            </div>
+            <div className="preset-list">
+              {presets.map((preset) => (
+                <div className="preset-chip" key={preset.id}>
+                  <button
+                    onClick={() => loadPreset(preset)}
+                    title={`Load ${preset.name}`}
+                  >
+                    {preset.name}
+                  </button>
+                  <button
+                    className="preset-delete"
+                    onClick={() => deletePreset(preset.id)}
+                    aria-label={`Delete ${preset.name}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="summary-grid">
           <label>
             <span>Current Guardian Points</span>
@@ -531,7 +594,17 @@ export default function Home() {
               <p className="eyebrow">Target setup</p>
               <h2>Find the fastest legal route</h2>
             </div>
-            <div className="optimizer-intro-actions"><p>Enter desired levels; mastery fillers are added automatically.</p><button className="ghost-button" onClick={() => setTargets(clone(initial))}>Reset targets</button></div>
+            <div className="optimizer-intro-actions">
+              <p>
+                Enter desired levels; mastery fillers are added automatically.
+              </p>
+              <button
+                className="ghost-button"
+                onClick={() => setTargets(clone(initial))}
+              >
+                Reset targets
+              </button>
+            </div>
           </div>
           <div className="target-grid">
             {CLASS_IDS.map((c) => (
@@ -543,7 +616,7 @@ export default function Home() {
                     <input
                       type="number"
                       min="0"
-                      max="69"
+                      max={MAX_LEVEL}
                       value={targets[c][s]}
                       onChange={(e) =>
                         setTargets((old) => {
@@ -551,7 +624,7 @@ export default function Home() {
                           n[c][s] = Math.max(
                             0,
                             Math.min(
-                              69,
+                              MAX_LEVEL,
                               Math.floor(Number(e.target.value) || 0),
                             ),
                           );
@@ -596,7 +669,18 @@ export default function Home() {
             <h3>Recommended distribution</h3>
             {CLASS_IDS.map((c) => (
               <p key={c}>
-                <span className={`distribution-icon icon-${c}`} aria-hidden="true">{c === "warrior" ? "⚔" : c === "ranged" ? "🏹" : c === "tank" ? "🛡" : "✦"}</span>
+                <span
+                  className={`distribution-icon icon-${c}`}
+                  aria-hidden="true"
+                >
+                  {c === "warrior"
+                    ? "⚔"
+                    : c === "ranged"
+                      ? "🏹"
+                      : c === "tank"
+                        ? "🛡"
+                        : "✦"}
+                </span>
                 <b>{CLASS_NAMES[c]}</b> —{" "}
                 {STAT_IDS.map(
                   (s) =>
@@ -661,7 +745,7 @@ export default function Home() {
                 const check = canUpgrade(planned, classId, statId);
                 const sliderMax = Math.max(
                   initial[classId][statId],
-                  Math.min(69, level + Math.max(0, cap - total)),
+                  Math.min(MAX_LEVEL, level + Math.max(0, cap - total)),
                 );
                 return (
                   <div className="stat-row" key={statId}>
@@ -674,7 +758,7 @@ export default function Home() {
                       <small>
                         {upgradeCost(level + 1) === null
                           ? "Next cost unavailable"
-                          : `Next: ${money(upgradeCost(level + 1)!)}`}
+                          : `${isSpeculativeCost(level + 1) ? "Estimated next" : "Next"}: ${money(upgradeCost(level + 1)!)}`}
                       </small>
                       <input
                         key={`${classId}-${statId}-${sliderMax}`}
@@ -732,9 +816,62 @@ export default function Home() {
       </div>
       <footer>
         <button onClick={clearAll}>Clear all saved data</button>
-        <span>Costs available through individual stat level 69.</span>
+        <span>
+          Levels 71–90 use speculative costs based on the observed ×2.5 scaling
+          pattern.
+        </span>
       </footer>
-      {presetDialog && <div className="modal-backdrop" role="presentation"><section className="modal preset-modal" role="dialog" aria-modal="true" aria-labelledby="preset-title"><div className="modal-head"><div><p className="eyebrow">Saved setup</p><h2 id="preset-title">Name this preset</h2></div><button onClick={() => setPresetDialog(false)} aria-label="Close">×</button></div><p className="modal-copy">This saves the complete planned distribution for all four classes.</p><label className="preset-name-field"><span>Preset name</span><input autoFocus maxLength={40} value={presetName} onChange={e => setPresetName(e.target.value)} onKeyDown={e => { if (e.key === "Enter") confirmPreset(); }} placeholder="Example: Warrior ATK + SD" /></label><div className="modal-actions"><button className="ghost-button" onClick={() => setPresetDialog(false)}>Cancel</button><button className="primary-button" onClick={confirmPreset} disabled={!presetName.trim()}>Save preset</button></div></section></div>}
+      {presetDialog && (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="modal preset-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="preset-title"
+          >
+            <div className="modal-head">
+              <div>
+                <p className="eyebrow">Saved setup</p>
+                <h2 id="preset-title">Name this preset</h2>
+              </div>
+              <button onClick={() => setPresetDialog(false)} aria-label="Close">
+                ×
+              </button>
+            </div>
+            <p className="modal-copy">
+              This saves the complete planned distribution for all four classes.
+            </p>
+            <label className="preset-name-field">
+              <span>Preset name</span>
+              <input
+                autoFocus
+                maxLength={40}
+                value={presetName}
+                onChange={(e) => setPresetName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") confirmPreset();
+                }}
+                placeholder="Example: Warrior ATK + SD"
+              />
+            </label>
+            <div className="modal-actions">
+              <button
+                className="ghost-button"
+                onClick={() => setPresetDialog(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="primary-button"
+                onClick={confirmPreset}
+                disabled={!presetName.trim()}
+              >
+                Save preset
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
       {editing && (
         <div className="modal-backdrop" role="presentation">
           <section
@@ -766,7 +903,7 @@ export default function Home() {
                       <input
                         type="number"
                         min="0"
-                        max="69"
+                        max={MAX_LEVEL}
                         value={draft[classId][statId]}
                         onChange={(e) =>
                           setDraft((old) => {
@@ -774,7 +911,7 @@ export default function Home() {
                             next[classId][statId] = Math.max(
                               0,
                               Math.min(
-                                69,
+                                MAX_LEVEL,
                                 Math.floor(Number(e.target.value) || 0),
                               ),
                             );

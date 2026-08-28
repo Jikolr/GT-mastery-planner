@@ -100,9 +100,88 @@ The Windows output is generated in `release/`. Build directories are ignored by 
 - `desktop/` — Vite desktop entry point.
 - `Assets/` — source artwork used by the application.
 
-## Cost-data limitation
+## Upgrade-cost mathematics
 
-Confirmed cost data currently covers individual stat levels 1–69. The UI does not invent unsupported costs beyond that range.
+The cost curve combines linear growth inside each ten-level block with exponential growth between blocks.
+
+### Growth inside a block
+
+Let `L` be the current level, so `C(L)` is the price of upgrading from `L` to `L + 1`. Let `B` be the starting price of the current ten-level block and `r = L mod 10` be the position inside that block.
+
+```text
+C(L) = B × (1 + 0.05 × r)
+```
+
+Each successive upgrade adds 5% of the block's starting price. For the 50–59 block, `B = 4,000,000`. Therefore:
+
+```text
+C(53) = 4,000,000 × (1 + 0.05 × 3)
+      = 4,600,000 GP
+```
+
+### Evolution of the block base
+
+| Current-level block | Starting cost B | Status         |
+| ------------------- | --------------: | -------------- |
+| 0–9                 |          80,000 | observed curve |
+| 10–19               |         160,000 | observed curve |
+| 20–29               |         320,000 | observed curve |
+| 30–39               |         640,000 | observed curve |
+| 40–49               |       1,600,000 | observed curve |
+| 50–59               |       4,000,000 | observed curve |
+| 60–69               |      10,000,000 | observed curve |
+| 70–79               |      25,000,000 | speculative    |
+| 80–89               |      62,500,000 | speculative    |
+
+Before level 40, the base doubles every ten levels:
+
+```text
+B(n) = 80,000 × 2^n
+```
+
+Starting at level 40, the observed bases follow a ×2.5 regime:
+
+```text
+C(L) = 1,600,000
+     × 2.5^floor((L - 40) / 10)
+     × (1 + 0.05 × (L mod 10))
+```
+
+For example, the estimated 70→71 cost is:
+
+```text
+1,600,000 × 2.5^3 × (1 + 0.05 × 0)
+= 25,000,000 GP
+```
+
+### Speculative levels 71–90
+
+Costs above level 70 are estimates that assume the ×2.5 block scaling continues unchanged. They are not confirmed game data.
+
+| Upgrade | Estimated cost |
+| ------- | -------------: |
+| 70→71   |     25,000,000 |
+| 71→72   |     26,250,000 |
+| 72→73   |     27,500,000 |
+| 73→74   |     28,750,000 |
+| 74→75   |     30,000,000 |
+| 75→76   |     31,250,000 |
+| 76→77   |     32,500,000 |
+| 77→78   |     33,750,000 |
+| 78→79   |     35,000,000 |
+| 79→80   |     36,250,000 |
+| 80→81   |     62,500,000 |
+| 81→82   |     65,625,000 |
+| 82→83   |     68,750,000 |
+| 83→84   |     71,875,000 |
+| 84→85   |     75,000,000 |
+| 85→86   |     78,125,000 |
+| 86→87   |     81,250,000 |
+| 87→88   |     84,375,000 |
+| 88→89   |     87,500,000 |
+| 89→90   |     90,625,000 |
+
+The important distinction is that the local progression is linear (`+5% of B` per level), while the global block progression is exponential (`B × 2.5` every ten levels). The application labels every projected cost above level 70 as speculative.
 
 ## Contributing
 
