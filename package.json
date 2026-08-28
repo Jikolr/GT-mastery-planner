@@ -1,7 +1,11 @@
 {
-  "name": "sites-project",
-  "version": "0.1.0",
+  "name": "guardian-tales-mastery-planner",
+  "version": "0.2.0",
   "private": true,
+  "description": "Offline Windows planner and target optimizer for Guardian Tales mastery upgrades.",
+  "author": "Alexandre Corbineau",
+  "license": "MIT",
+  "main": "electron/main.cjs",
   "engines": {
     "node": ">=22.13.0"
   },
@@ -9,13 +13,17 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "vinext start",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "test": "vitest run --config vitest.config.mts"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern desktop-dist --ignore-pattern release --ignore-pattern release-*",
+    "test": "vitest run --config vitest.config.mts",
+    "desktop:bundle": "vite build --config vite.desktop.config.ts",
+    "desktop:build": "npm run test && npm run desktop:bundle && set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable --publish never",
+    "check": "npm run lint && npm run test && npm run desktop:bundle"
   },
   "dependencies": {
-    "next": "16.2.6",
+    "next": "16.3.3",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "vinext": "1.0.0-beta.3"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
@@ -27,6 +35,8 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "react-server-dom-webpack": "19.2.6",
@@ -36,6 +46,32 @@
     "vite": "8.0.13",
     "vitest": "^3.2.4",
     "wrangler": "4.92.0"
+  },
+  "build": {
+    "appId": "com.guardianmastery.planner",
+    "productName": "Guardian Tales Mastery Planner",
+    "asar": true,
+    "asarUnpack": [
+      "desktop-dist/**"
+    ],
+    "files": [
+      "electron/**/*",
+      "desktop-dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "directories": {
+      "output": "release"
+    }
   },
   "type": "module"
 }

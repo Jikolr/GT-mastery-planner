@@ -101,3 +101,35 @@ export function formatDuration(hours: number): string {
   const mins = remainder % 60;
   return [days && `${days} ${days === 1 ? 'day' : 'days'}`, hrs && `${hrs} ${hrs === 1 ? 'hour' : 'hours'}`, (mins || (!days && !hrs)) && `${mins} ${mins === 1 ? 'minute' : 'minutes'}`].filter(Boolean).join(' ');
 }
+
+export type OptimizationStep = { classId: ClassId; statId: StatId; destination: number; cost: number; reason: 'target' | 'unlock' };
+export type OptimizationResult = { plan: Levels; steps: OptimizationStep[]; cost: number; error?: string };
+
+export function optimizeTarget(initial: Levels, requested: Levels): OptimizationResult {
+  // Work on a clone: optimization is a preview and must never mutate saved account data.
+  const plan = structuredClone(initial) as Levels;
+  const target = structuredClone(initial) as Levels;
+  for (const c of CLASS_IDS) for (const s of STAT_IDS) target[c][s] = Math.max(initial[c][s], sanitizeLevel(requested[c][s]));
+  const steps: OptimizationStep[] = [];
+  for (const c of CLASS_IDS) for (const s of STAT_IDS) if (target[c][s] > 69) return { plan, steps, cost: 0, error: 'Targets must be between level 0 and 69.' };
+  let guard = 0;
+  while (guard++ < 2000 && CLASS_IDS.some(c => STAT_IDS.some(s => plan[c][s] < target[c][s]))) {
+    let chosen: { c: ClassId; s: StatId; reason: 'target' | 'unlock' } | null = null;
+    for (const c of CLASS_IDS) for (const s of STAT_IDS) if (plan[c][s] < target[c][s] && canUpgrade(plan, c, s).allowed) { chosen = { c, s, reason: 'target' }; break; }
+    if (!chosen) {
+      // No requested upgrade is currently legal. Buy the cheapest filler in a
+      // lagging class so the shared mastery cap can advance.
+      const cap = unlockedCap(plan);
+      const blocker = CLASS_IDS.find(c => classTotal(plan, c) < cap);
+      if (!blocker) break;
+      const s = STAT_IDS.filter(x => plan[blocker][x] < 69).sort((a,b) => (upgradeCost(plan[blocker][a]+1) ?? Infinity) - (upgradeCost(plan[blocker][b]+1) ?? Infinity))[0];
+      if (!s) break;
+      chosen = { c: blocker, s, reason: 'unlock' };
+    }
+    const cost = upgradeCost(plan[chosen.c][chosen.s] + 1);
+    if (cost === null) return { plan, steps, cost: steps.reduce((n, x) => n + x.cost, 0), error: 'A target exceeds the available cost table.' };
+    plan[chosen.c][chosen.s]++;
+    steps.push({ classId: chosen.c, statId: chosen.s, destination: plan[chosen.c][chosen.s], cost, reason: chosen.reason });
+  }
+  return { plan, steps, cost: steps.reduce((n, x) => n + x.cost, 0), error: steps.length >= 2000 ? 'Target route is too large to calculate.' : undefined };
+}
