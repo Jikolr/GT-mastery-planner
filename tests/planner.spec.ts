@@ -198,7 +198,7 @@ test("shared targets are previewed and do not replace the account", async ({
   ).toBe(0);
 });
 
-test("mobile fits the viewport; artwork, Warrior color and social metadata are present", async ({
+test("mobile fits the viewport; artwork, Warrior color and text-only sharing metadata are present", async ({
   page,
   request,
 }) => {
@@ -207,9 +207,16 @@ test("mobile fits the viewport; artwork, Warrior color and social metadata are p
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
-  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
     "content",
-    /og.png$/,
+    "GT Mastery Planner",
+  );
+  await expect(
+    page.locator('meta[property="og:image"], meta[name="twitter:image"]'),
+  ).toHaveCount(0);
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+    "content",
+    "summary",
   );
   const visual = await page.evaluate(() => ({
     color: getComputedStyle(
