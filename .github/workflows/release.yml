@@ -1,0 +1,84 @@
+name: Build desktop releases
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.platform }} ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            platform: win
+            arch: x64
+          - runner: macos-15-intel
+            platform: mac
+            arch: x64
+          - runner: macos-15
+            platform: mac
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Check that the release tag matches package.json
+        if: startsWith(github.ref, 'refs/tags/')
+        run: node -e "const p=require('./package.json'); if(process.env.GITHUB_REF_NAME!=='v'+p.version) throw Error('Tag must equal v'+p.version)"
+      - run: npm run check
+      - run: npm run desktop:bundle
+      - name: Package native application
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+      - name: Launch the packaged application with an isolated test profile
+        run: npm run desktop:smoke
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          pattern: desktop-*
+          path: release
+          merge-multiple: true
+      - run: node scripts/checksums.mjs
+      - name: Create or update a draft release for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            test "$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)" = "true" || { echo "Refusing to overwrite a published release"; exit 1; }
+          else
+            gh release create "$RELEASE_TAG" --draft --verify-tag --generate-notes --title "Guardian Tales Mastery Planner $RELEASE_TAG"
+          fi
+          gh release upload "$RELEASE_TAG" release/*.exe release/*.dmg release/*.zip release/SHA256SUMS.txt --clobber

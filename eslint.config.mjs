@@ -1,12 +1,38 @@
-import { defineConfig, globalIgnores } from 'eslint/config';
-import nextVitals from 'eslint-config-next/core-web-vitals';
-import nextTs from 'eslint-config-next/typescript';
+import js from "@eslint/js";
+import ts from "typescript-eslint";
+import hooks from "eslint-plugin-react-hooks";
+import globals from "globals";
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  { files: ['electron/**/*.cjs'], rules: { '@typescript-eslint/no-require-imports': 'off' } },
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'desktop-dist/**', 'release/**', 'release-*/**', 'next-env.d.ts']),
-]);
-
-export default eslintConfig;
+export default [
+  {
+    ignores: [
+      "node_modules/**",
+      "dist/**",
+      "desktop-dist/**",
+      "release/**",
+      "release-*/**",
+      ".next/**",
+      ".wrangler/**",
+      "outputs/**",
+      "work/**",
+      "playwright-report/**",
+      "test-results/**",
+      "next-env.d.ts",
+    ],
+  },
+  js.configs.recommended,
+  ...ts.configs.recommended,
+  { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
+  {
+    files: ["**/*.tsx"],
+    plugins: { "react-hooks": hooks },
+    rules: {
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
+  {
+    files: ["**/*.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+];

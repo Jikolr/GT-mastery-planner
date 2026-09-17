@@ -1,61 +1,109 @@
-import { sites } from '@openai/sites-vite-plugin';
-import tailwindcss from '@tailwindcss/postcss';
-import vinext from 'vinext';
-import { defineConfig } from 'vite';
-import hostingConfig from './.openai/hosting.json';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import pkg from "./package.json" with { type: "json" };
 
-const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
-  '00000000-0000-4000-8000-000000000000';
-
-const { d1, r2 } = hostingConfig;
-
-// macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
-const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
-
-const localBindingConfig = {
-  main: 'vinext/server/app-router-entry',
-  compatibility_flags: ['nodejs_compat'],
-  d1_databases: d1
-    ? [
-        {
-          binding: d1,
-          database_name: 'site-creator-d1',
-          database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
-        },
-      ]
-    : [],
-  r2_buckets: r2
-    ? [
-        {
-          binding: r2,
-          bucket_name: 'site-creator-r2',
-        },
-      ]
-    : [],
-};
-
-export default defineConfig(async () => {
-  // Keep Wrangler and Miniflare state project-local. These are non-secret tool
-  // settings; application environment belongs in ignored `.env*` files.
-  process.env.WRANGLER_WRITE_LOGS ??= 'false';
-  process.env.WRANGLER_LOG_PATH ??= '.wrangler/logs';
-  process.env.MINIFLARE_REGISTRY_PATH ??= '.wrangler/registry';
-
-  // Wrangler snapshots its log path while the Cloudflare plugin is imported.
-  const { cloudflare } = await import('@cloudflare/vite-plugin');
-
+let revision = "local";
+try {
+  revision = execFileSync("git", ["rev-parse", "--short", "HEAD"], {
+    encoding: "utf8",
+  }).trim();
+  if (
+    execFileSync("git", ["status", "--porcelain", "--untracked-files=no"], {
+      encoding: "utf8",
+    }).trim()
+  )
+    revision += "-local";
+} catch {
+  /* Source ZIPs do not include git metadata. */
+}
+export default defineConfig(({ mode }) => {
+  const desktop = mode === "desktop";
   return {
-    css: { postcss: { plugins: [tailwindcss()] } },
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    root: "desktop",
+    base: "./",
+    publicDir: "../public",
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version),
+      __BUILD_ID__: JSON.stringify(
+        process.env.GITHUB_SHA?.slice(0, 7) ?? revision,
+      ),
+      __WEB_BUILD__: JSON.stringify(!desktop),
+    },
+    resolve: {
+      alias: desktop
+        ? [
+            {
+              find: "virtual:pwa-register",
+              replacement: fileURLToPath(
+                new URL("./app/pwa-disabled.ts", import.meta.url),
+              ),
+            },
+          ]
+        : [],
+    },
     plugins: [
-      vinext(),
-      sites(),
-      cloudflare({
-        viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
-        config: localBindingConfig,
-      }),
+      react(),
+      ...(desktop
+        ? [
+            {
+              name: "desktop-csp",
+              transformIndexHtml: () => [
+                {
+                  tag: "meta",
+                  attrs: {
+                    "http-equiv": "Content-Security-Policy",
+                    content:
+                      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'",
+                  },
+                  injectTo: "head-prepend" as const,
+                },
+              ],
+            },
+          ]
+        : [
+            VitePWA({
+              registerType: "prompt",
+              injectRegister: false,
+              includeAssets: ["favicon.svg", "icons/*.png"],
+              manifest: {
+                id: "./",
+                name: "Guardian Tales Mastery Planner",
+                short_name: "GT Planner",
+                description: pkg.description,
+                start_url: "./",
+                scope: "./",
+                display: "standalone",
+                theme_color: "#101721",
+                background_color: "#0c1017",
+                icons: [
+                  {
+                    src: "icons/icon-192.png",
+                    sizes: "192x192",
+                    type: "image/png",
+                  },
+                  {
+                    src: "icons/icon-512.png",
+                    sizes: "512x512",
+                    type: "image/png",
+                    purpose: "any maskable",
+                  },
+                ],
+              },
+              workbox: {
+                globPatterns: ["**/*.{js,css,html,png,svg,webp,ico}"],
+                maximumFileSizeToCacheInBytes: 3000000,
+                navigateFallback: "index.html",
+                cleanupOutdatedCaches: true,
+              },
+            }),
+          ]),
     ],
+    build: {
+      outDir: desktop ? "../desktop-dist" : "../dist",
+      emptyOutDir: true,
+    },
   };
 });

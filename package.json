@@ -1,66 +1,65 @@
 {
   "name": "guardian-tales-mastery-planner",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
-  "description": "Offline Windows planner and target optimizer for Guardian Tales mastery upgrades.",
+  "description": "Web and desktop planner for Guardian Tales mastery upgrades.",
   "author": "Alexandre Corbineau",
   "license": "MIT",
+  "type": "module",
   "main": "electron/main.cjs",
   "engines": {
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "vinext dev",
-    "build": "vinext build",
-    "start": "vinext start",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern desktop-dist --ignore-pattern release --ignore-pattern release-*",
-    "test": "vitest run --config vitest.config.mts",
-    "desktop:bundle": "vite build --config vite.desktop.config.ts",
-    "desktop:build": "npm run test && npm run desktop:bundle && set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable --publish never",
-    "check": "npm run lint && npm run test && npm run desktop:bundle"
-  },
-  "dependencies": {
-    "next": "16.3.3",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "vinext": "1.0.0-beta.3"
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:ui": "playwright test",
+    "desktop:bundle": "vite build --mode desktop",
+    "desktop:build": "npm run check && npm run desktop:bundle && electron-builder --win portable --publish never",
+    "desktop:mac": "npm run check && npm run desktop:bundle && electron-builder --mac dmg zip --publish never",
+    "desktop:smoke": "node scripts/smoke-desktop.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build",
+    "format": "prettier --write app desktop electron scripts tests *.ts *.mts *.mjs package.json .github/workflows/*.yml"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.37.1",
-    "@cloudflare/workers-types": "4.20260515.1",
-    "@emnapi/core": "^1.11.3",
-    "@emnapi/runtime": "^1.11.3",
-    "@openai/sites-vite-plugin": "^0.1.0 || ^0.2.0",
-    "@tailwindcss/postcss": "4.2.1",
-    "@types/node": "22.19.19",
-    "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.2",
-    "@vitejs/plugin-rsc": "0.5.26",
-    "electron": "^37.2.6",
-    "electron-builder": "^26.0.12",
-    "eslint": "9.39.4",
-    "eslint-config-next": "16.2.6",
-    "react-server-dom-webpack": "19.2.6",
-    "tailwindcss": "4.2.1",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "electron": "44.4.1",
+    "electron-builder": "26.15.3",
+    "eslint": "10.10.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.12.0",
+    "prettier": "^3.8.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "typescript": "5.9.3",
-    "vinext": "1.0.0-beta.3",
-    "vite": "8.0.13",
-    "vitest": "^3.2.4",
-    "wrangler": "4.92.0"
+    "typescript-eslint": "8.70.0",
+    "vite": "8.3.0",
+    "vite-plugin-pwa": "1.3.0",
+    "vitest": "5.0.1"
   },
   "build": {
     "appId": "com.guardianmastery.planner",
     "productName": "Guardian Tales Mastery Planner",
+    "icon": "public/icons/icon-512.png",
     "asar": true,
     "asarUnpack": [
       "desktop-dist/**"
     ],
     "files": [
-      "electron/**/*",
+      "electron/main.cjs",
       "desktop-dist/**/*",
       "package.json"
     ],
+    "artifactName": "Guardian-Tales-Mastery-Planner-${version}-${os}-${arch}.${ext}",
     "win": {
       "target": [
         {
@@ -69,11 +68,20 @@
             "x64"
           ]
         }
-      ]
+      ],
+      "signExecutable": false
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": "-",
+      "hardenedRuntime": false
     },
     "directories": {
       "output": "release"
     }
-  },
-  "type": "module"
+  }
 }

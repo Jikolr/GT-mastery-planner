@@ -81,7 +81,9 @@ export function bonusPercent(statId: StatId, level: number): number {
 }
 
 export function upgradeCost(destinationLevel: number): number | null {
-  return destinationLevel >= 1 && destinationLevel <= COSTS.length
+  return Number.isInteger(destinationLevel) &&
+    destinationLevel >= 1 &&
+    destinationLevel <= COSTS.length
     ? COSTS[destinationLevel - 1]
     : null;
 }
@@ -165,7 +167,9 @@ export function targetDate(
   incomePerHour: number,
 ): Date | null {
   const hours = hoursUntilAffordable(deficit, incomePerHour);
-  return hours === null ? null : new Date(now.getTime() + hours * 3600000);
+  if (hours === null) return null;
+  const date = new Date(now.getTime() + hours * 3600000);
+  return Number.isFinite(date.getTime()) ? date : null;
 }
 
 export function formatDuration(hours: number): string {
@@ -201,6 +205,14 @@ export function optimizeTarget(
   initial: Levels,
   requested: Levels,
 ): OptimizationResult {
+  if (!isLegalDistribution(initial)) {
+    return {
+      plan: structuredClone(initial),
+      steps: [],
+      cost: 0,
+      error: "Current levels do not respect the shared mastery gates.",
+    };
+  }
   // Work on a clone: optimization is a preview and must never mutate saved account data.
   const plan = structuredClone(initial) as Levels;
   const target = structuredClone(initial) as Levels;
@@ -224,11 +236,11 @@ export function optimizeTarget(
   ) {
     let chosen: { c: ClassId; s: StatId; reason: "target" | "unlock" } | null =
       null;
-    for (const c of CLASS_IDS)
+    targetSearch: for (const c of CLASS_IDS)
       for (const s of STAT_IDS)
         if (plan[c][s] < target[c][s] && canUpgrade(plan, c, s).allowed) {
           chosen = { c, s, reason: "target" };
-          break;
+          break targetSearch;
         }
     if (!chosen) {
       // No requested upgrade is currently legal. Buy the cheapest filler in a
@@ -265,9 +277,113 @@ export function optimizeTarget(
     plan,
     steps,
     cost: steps.reduce((n, x) => n + x.cost, 0),
-    error:
-      steps.length >= 2000
-        ? "Target route is too large to calculate."
+    error: CLASS_IDS.some((c) =>
+      STAT_IDS.some((s) => plan[c][s] < target[c][s]),
+    )
+      ? "The requested target could not be reached."
+      : undefined,
+  };
+}
+
+/** Validate persisted/input shapes before any arithmetic. Targets may be unbalanced. */
+export function isLevels(value: unknown): value is Levels {
+  if (!value || typeof value !== "object") return false;
+  return CLASS_IDS.every((c) => {
+    const stats = (value as Record<string, unknown>)[c];
+    return (
+      stats !== null &&
+      typeof stats === "object" &&
+      STAT_IDS.every((s) => {
+        const level = (stats as Record<string, unknown>)[s];
+        return (
+          typeof level === "number" &&
+          Number.isInteger(level) &&
+          level >= 0 &&
+          level <= MAX_LEVEL
+        );
+      })
+    );
+  });
+}
+
+export function isLegalDistribution(value: unknown): value is Levels {
+  return (
+    isLevels(value) &&
+    Object.values(classTotals(value)).every(
+      (total) => total <= unlockedCap(value),
+    )
+  );
+}
+
+/** The same edit policy applies to buttons, sliders and typed levels. */
+export function editPlan(
+  initial: Levels,
+  planned: Levels,
+  c: ClassId,
+  s: StatId,
+  requested: number,
+): { plan: Levels; message?: string } {
+  const next = structuredClone(planned);
+  const target = Math.max(initial[c][s], sanitizeLevel(requested));
+  if (target < next[c][s]) {
+    next[c][s] = target;
+    if (!isLegalDistribution(next)) {
+      return {
+        plan: planned,
+        message:
+          "This reduction would remove a mastery prerequisite. Lower the higher classes first, or reset the plan.",
+      };
+    }
+  } else {
+    while (next[c][s] < target && canUpgrade(next, c, s).allowed) next[c][s]++;
+  }
+  return {
+    plan: next,
+    message:
+      next[c][s] < target
+        ? `Mastery gate reached at level ${next[c][s]}. Raise the other classes before continuing.`
         : undefined,
   };
+}
+
+export type RouteStage = {
+  cap: number;
+  resultingCap: number;
+  cost: number;
+  cumulativeCost: number;
+  targetCount: number;
+  unlockCount: number;
+  steps: OptimizationStep[];
+};
+
+/** A gate-opening purchase belongs to the stage it finishes. ETA uses cumulative cost. */
+export function routeStages(
+  initial: Levels,
+  steps: OptimizationStep[],
+): RouteStage[] {
+  const replay = structuredClone(initial);
+  const stages: RouteStage[] = [];
+  let cumulativeCost = 0;
+  for (const step of steps) {
+    const cap = unlockedCap(replay);
+    if (stages.at(-1)?.cap !== cap)
+      stages.push({
+        cap,
+        resultingCap: cap,
+        cost: 0,
+        cumulativeCost,
+        targetCount: 0,
+        unlockCount: 0,
+        steps: [],
+      });
+    const stage = stages[stages.length - 1];
+    replay[step.classId][step.statId] = step.destination;
+    stage.steps.push(step);
+    stage.cost += step.cost;
+    cumulativeCost += step.cost;
+    stage.cumulativeCost = cumulativeCost;
+    stage[step.reason === "target" ? "targetCount" : "unlockCount"]++;
+    stage.resultingCap = unlockedCap(replay);
+  }
+  return stages;
 }
