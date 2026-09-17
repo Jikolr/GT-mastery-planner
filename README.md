@@ -1,6 +1,12 @@
 # Guardian Tales Mastery Planner
 
-An offline Windows desktop application for planning Guardian Tales mastery upgrades without spending points in game.
+A web and desktop application for planning Guardian Tales mastery upgrades without spending points in game.
+
+## Use the planner online
+
+### [Open Guardian Tales Mastery Planner in your browser](https://jikolr.github.io/GT-mastery-planner/)
+
+The web version requires no download or installation. Plans and presets are saved locally in the browser and are not sent to a server. The downloadable Windows and macOS applications remain available for offline use.
 
 > This is an unofficial fan-made tool. It is not affiliated with or endorsed by Kakao Games or Kong Studios.
 
@@ -14,16 +20,16 @@ An offline Windows desktop application for planning Guardian Tales mastery upgra
 - Save, name, reload, and delete up to 10 local distribution presets.
 - Store all data locally; no account, server, or internet connection is required.
 
-## Installation
+## Desktop application
 
-### Download the portable release
+### Download a release
 
 1. Open the repository's **Releases** page.
-2. Download `Guardian-Tales-Mastery-Planner-<version>-Windows-x64.zip`.
+2. Download the archive for your operating system and processor.
 3. Extract the complete ZIP to a folder.
-4. Run `Guardian Tales Mastery Planner.exe` inside the extracted folder.
+4. On Windows, run `Guardian Tales Mastery Planner.exe`. On macOS, open the provided `.dmg` or application bundle.
 
-This is currently a **portable application**, not an installer. It does not add shortcuts, modify the Windows registry, or appear in “Installed apps”. To uninstall it, delete the extracted folder. Keep the executable beside its `resources` directory; moving only the `.exe` will break the application.
+The Windows release is currently a **portable application**, not an installer. It does not add shortcuts, modify the Windows registry, or appear in “Installed apps”. To uninstall it, delete the extracted folder. Keep the executable beside its `resources` directory; moving only the `.exe` will break the application.
 
 The application is currently unsigned, so Windows SmartScreen may display a warning. Select **More info**, verify the filename and publisher information, then choose **Run anyway** only if you downloaded it from this repository.
 
@@ -65,7 +71,7 @@ The optimizer prioritizes requested target upgrades. When mastery gates block pr
 
 ## Data and privacy
 
-Levels, resources, plans, and presets are stored in Electron's local browser storage on the user's computer. The application does not transmit account data.
+Levels, resources, plans, and presets are stored locally by the web browser or desktop application. The application does not transmit account data. Web and desktop data are stored separately and are not automatically synchronized between devices.
 
 ## Development
 
