@@ -14,6 +14,7 @@ When **Update application** appears, click it to load the cached new version. Th
 
 ## Features
 
+- Switch the entire interface between English and Korean with **English / 한국어** in the header. The choice is saved on this device separately from account data. Preset names and shared setups are never translated or modified.
 - Plan all four mastery classes: Warrior, Ranged, Tank, and Support.
 - Adjust stats with buttons, sliders, or direct level entry.
 - Calculate Guardian Point cost, remaining balance, deficit, and ETA.

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { useI18n } from "./i18n";
 export function OfflineStatus() {
+  const { t } = useI18n();
   const [ready, setReady] = useState(false);
   const [refresh, setRefresh] = useState<null | (() => void)>(null);
   const [error, setError] = useState(false);
@@ -44,21 +46,23 @@ export function OfflineStatus() {
   if (refresh)
     return (
       <div className="offline-status" role="status">
-        A new version is ready.{" "}
-        <button onClick={refresh}>Update application</button>
+        {t("A new version is ready.")}{" "}
+        <button onClick={refresh}>{t("Update application")}</button>
       </div>
     );
   if (error)
     return (
       <p className="offline-status">
-        Offline caching is unavailable in this browser. You can keep using the
-        planner online.
+        {t(
+          "Offline caching is unavailable in this browser. You can keep using the planner online.",
+        )}{" "}
       </p>
     );
   return ready ? (
     <p className="offline-status" role="status">
-      Ready for offline use · use your browser’s Install app / Add to Home
-      Screen option to keep it handy.
+      {t(
+        "Ready for offline use · use your browser’s Install app / Add to Home Screen option to keep it handy.",
+      )}{" "}
     </p>
   ) : null;
 }

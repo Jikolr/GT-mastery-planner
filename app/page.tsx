@@ -11,7 +11,6 @@ import {
   classTotals,
   deficitFor,
   editPlan,
-  formatDuration,
   hoursUntilAffordable,
   isLegalDistribution,
   isSpeculativeCost,
@@ -41,6 +40,7 @@ import { usePlanner } from "./usePlanner";
 import { Modal } from "./components/Modal";
 import { LevelInput } from "./components/LevelInput";
 import { OfflineStatus } from "./pwa";
+import { useI18n, korean, type Message } from "./i18n";
 import warriorIcon from "../Assets/warrior.svg";
 import rangedIcon from "../Assets/ranged.svg";
 import tankIcon from "../Assets/tank.svg";
@@ -51,16 +51,6 @@ const ICONS = {
   ranged: rangedIcon,
   tank: tankIcon,
   support: supportIcon,
-};
-const number = new Intl.NumberFormat();
-const money = (value: number) => `${number.format(value)} GP`;
-const duration = (cost: number, points: number, income: number) => {
-  const hours = hoursUntilAffordable(deficitFor(points - cost), income);
-  return hours === null
-    ? "Income unavailable"
-    : hours === 0
-      ? "Available now"
-      : formatDuration(hours);
 };
 const clone = (levels: Levels) => structuredClone(levels);
 function download(text: string, filename: string) {
@@ -81,19 +71,22 @@ function Icon({ id }: { id: ClassId }) {
   );
 }
 function Distribution({ levels }: { levels: Levels }) {
+  const { t } = useI18n();
   return (
     <div className="distribution-grid">
       {CLASS_IDS.map((c) => (
         <article className={`distribution-card class-${c}`} key={c}>
           <div className="class-header">
             <Icon id={c} />
-            <h3>{CLASS_NAMES[c]}</h3>
-            <small>Mastery {classTotal(levels, c)}</small>
+            <h3>{t(CLASS_NAMES[c])}</h3>
+            <small>
+              {t("Mastery")} {classTotal(levels, c)}
+            </small>
           </div>
           <dl>
             {STAT_IDS.map((s) => (
               <div key={s}>
-                <dt>{STAT_NAMES[s].replace(" Increase", "")}</dt>
+                <dt>{t(STAT_NAMES[s].replace(" Increase", ""))}</dt>
                 <dd>{levels[c][s]}</dd>
               </div>
             ))}
@@ -105,11 +98,29 @@ function Distribution({ levels }: { levels: Levels }) {
 }
 
 export default function Home() {
+  const {
+    t,
+    language,
+    locale,
+    toggle,
+    preferenceError,
+    number,
+    money,
+    duration: formatDuration,
+  } = useI18n();
+  const duration = (cost: number, points: number, income: number) => {
+    const hours = hoursUntilAffordable(deficitFor(points - cost), income);
+    return hours === null
+      ? t("Income unavailable")
+      : hours === 0
+        ? t("Available now")
+        : formatDuration(hours);
+  };
   const { data, setData, loaded, blocked, setBlocked, saveError, saveStatus } =
     usePlanner();
   const { guardianPoints, income, initial, planned, targets, presets } = data;
   const [tab, setTab] = useState<"planner" | "optimizer">("planner");
-  const [notice, setNotice] = useState<string | null>(
+  const [notice, setNotice] = useState<Message | null>(
     loaded.blocked ? null : (loaded.warning ?? null),
   );
   const [draft, setDraft] = useState<Levels | null>(null);
@@ -201,9 +212,12 @@ export default function Home() {
     patch({ planned: result.plan });
     setTab("planner");
     const fillers = result.steps.filter((s) => s.reason === "unlock").length;
-    setNotice(
-      `“${preset.name}” loaded for your current account.${fillers ? ` Added ${fillers} prerequisite levels to keep it legal.` : ""}`,
-    );
+    setNotice({
+      key: fillers
+        ? "“{name}” loaded for your current account. Added {count} prerequisite levels to keep it legal."
+        : "“{name}” loaded for your current account.",
+      values: { name: preset.name, count: fillers },
+    });
   }
   async function importFile(file?: File) {
     if (!file) return;
@@ -212,7 +226,13 @@ export default function Home() {
         throw new Error("Backup is too large (maximum 100 KB).");
       setImported(parseBackup(await file.text()));
     } catch (error) {
-      setNotice(`Import failed: ${(error as Error).message}`);
+      const reason =
+        error instanceof SyntaxError
+          ? "Invalid JSON backup file."
+          : error instanceof Error && Object.hasOwn(korean, error.message)
+            ? error.message
+            : "Unable to read this backup file.";
+      setNotice({ key: "Import failed: {error}", values: { error: reason } });
     }
     if (fileInput.current) fileInput.current.value = "";
   }
@@ -241,9 +261,9 @@ export default function Home() {
       <header className="topbar">
         <div className="brand-mark">GT</div>
         <div>
-          <p className="eyebrow">Guardian Tales Utility</p>
+          <p className="eyebrow">{t("Guardian Tales Utility")}</p>
           <h1>
-            Mastery Planner <small>v{__APP_VERSION__}</small>
+            {t("Mastery Planner")} <small>v{__APP_VERSION__}</small>
           </h1>
         </div>
         <span
@@ -251,12 +271,37 @@ export default function Home() {
           role="status"
         >
           <i />
-          {saveStatus}
+          {t(saveStatus)}
         </span>
+        <button
+          type="button"
+          className="ghost-button language-toggle"
+          onClick={toggle}
+          aria-label={language === "en" ? "Switch to Korean" : "영어로 전환"}
+        >
+          <span
+            lang="en"
+            className={language === "en" ? "selected-language" : ""}
+          >
+            English
+          </span>
+          <span aria-hidden="true"> / </span>
+          <span
+            lang="ko"
+            className={language === "ko" ? "selected-language" : ""}
+          >
+            한국어
+          </span>
+        </button>
       </header>
+      {preferenceError && (
+        <p role="status" className="storage-warning">
+          {t("Language preference could not be saved on this device.")}
+        </p>
+      )}
       {(blocked || saveError) && (
         <aside className="storage-warning" role="alert">
-          <p>{saveError ?? loaded.warning}</p>
+          <p>{t(saveError ?? loaded.warning)}</p>
           {loaded.recovery && (
             <button
               className="ghost-button"
@@ -264,41 +309,42 @@ export default function Home() {
                 download(loaded.recovery!, "guardian-mastery-recovery.json")
               }
             >
-              Download recovery data
+              {t("Download recovery data")}{" "}
             </button>
           )}
         </aside>
       )}
       <OfflineStatus />
-      <nav className="tabs" aria-label="Planner views">
+      <nav className="tabs" aria-label={t("Planner views")}>
         <button
           aria-current={tab === "planner" ? "page" : undefined}
           className={tab === "planner" ? "active" : ""}
           onClick={() => setTab("planner")}
         >
-          Planner
+          {t("Planner")}{" "}
         </button>
         <button
           aria-current={tab === "optimizer" ? "page" : undefined}
           className={tab === "optimizer" ? "active" : ""}
           onClick={() => setTab("optimizer")}
         >
-          Target optimizer
+          {t("Target optimizer")}{" "}
         </button>
       </nav>
       <div className="speculative-note" role="note">
-        <strong>Estimated levels:</strong> costs for levels 71–90 are
-        speculative projections assuming the observed ×2.5 scaling continues
-        after level 70.
+        <strong>{t("Estimated levels:")}</strong>{" "}
+        {t(
+          "costs for levels 71–90 are speculative projections assuming the observed ×2.5 scaling continues after level 70.",
+        )}{" "}
       </div>
       <section className={`summary-card ${remaining < 0 ? "is-negative" : ""}`}>
         <div className="summary-heading">
           <div>
-            <p className="eyebrow">Your resources</p>
+            <p className="eyebrow">{t("Your resources")}</p>
             <h2>
               {tab === "optimizer"
-                ? "Your target budget"
-                : "Plan without limits"}
+                ? t("Your target budget")
+                : t("Plan without limits")}
             </h2>
           </div>
           <div className="actions">
@@ -310,8 +356,8 @@ export default function Home() {
                 setPresetName("");
               }}
             >
-              Save {tab === "optimizer" ? "result" : "preset"} ({presets.length}
-              /10)
+              {t(tab === "optimizer" ? "Save result" : "Save preset")} (
+              {presets.length}/10)
             </button>
             {tab === "planner" && (
               <>
@@ -322,7 +368,7 @@ export default function Home() {
                     setNotice("Planned upgrades reset to your current levels.");
                   }}
                 >
-                  Reset plan
+                  {t("Reset plan")}{" "}
                 </button>
                 <button
                   className="ghost-button"
@@ -331,7 +377,7 @@ export default function Home() {
                     setTab("optimizer");
                   }}
                 >
-                  Optimize this plan
+                  {t("Optimize this plan")}{" "}
                 </button>
               </>
             )}
@@ -342,13 +388,13 @@ export default function Home() {
                 setEditorError("");
               }}
             >
-              Edit current levels
+              {t("Edit current levels")}{" "}
             </button>
           </div>
         </div>
         <div className="summary-grid">
           <label>
-            <span>Current Guardian Points</span>
+            <span>{t("Current Guardian Points")}</span>
             <input
               inputMode="numeric"
               value={guardianPoints}
@@ -363,7 +409,7 @@ export default function Home() {
             />
           </label>
           <label>
-            <span>Guardian Points / hour</span>
+            <span>{t("Guardian Points / hour")}</span>
             <input
               inputMode="numeric"
               value={income}
@@ -380,37 +426,37 @@ export default function Home() {
           <div className="metric">
             <span>
               {tab === "optimizer"
-                ? "Target route cost"
-                : "Planned upgrade cost"}
+                ? t("Target route cost")
+                : t("Planned upgrade cost")}
             </span>
             <strong title={money(cost)}>{money(cost)}</strong>
           </div>
           <div className="metric highlight">
-            <span>Remaining Guardian Points</span>
+            <span>{t("Remaining Guardian Points")}</span>
             <strong title={money(remaining)}>{money(remaining)}</strong>
           </div>
         </div>
         {deficit > 0 && (
           <div className="deficit-strip">
             <div>
-              <span>Missing Guardian Points</span>
+              <span>{t("Missing Guardian Points")}</span>
               <strong>{money(deficit)}</strong>
             </div>
             <div>
-              <span>Time required</span>
+              <span>{t("Time required")}</span>
               <strong>{duration(cost, guardianPoints, income)}</strong>
             </div>
             <div>
-              <span>Enough points on</span>
+              <span>{t("Enough points on")}</span>
               <strong>
                 {eta
-                  ? eta.toLocaleString(undefined, {
+                  ? eta.toLocaleString(locale, {
                       dateStyle: "medium",
                       timeStyle: "short",
                     })
                   : income > 0
-                    ? "Beyond calendar range"
-                    : "Set an income above zero"}
+                    ? t("Beyond calendar range")
+                    : t("Set an income above zero")}
               </strong>
             </div>
           </div>
@@ -424,10 +470,10 @@ export default function Home() {
               )
             }
           >
-            Export backup
+            {t("Export backup")}{" "}
           </button>
           <button onClick={() => fileInput.current?.click()}>
-            Import backup
+            {t("Import backup")}{" "}
           </button>
           <button
             onClick={() =>
@@ -436,22 +482,22 @@ export default function Home() {
               )
             }
           >
-            Share setup
+            {t("Share setup")}{" "}
           </button>
-          <span>Stored on this device · no account required</span>
+          <span>{t("Stored on this device · no account required")}</span>
           <input
             hidden
             ref={fileInput}
             type="file"
             accept=".json,application/json"
-            aria-label="Import planner backup"
+            aria-label={t("Import planner backup")}
             onChange={(e) => void importFile(e.target.files?.[0])}
           />
         </div>
         {presets.length > 0 && (
           <div className="preset-shelf">
             <div>
-              <span>Saved presets</span>
+              <span>{t("Saved presets")}</span>
               <small>{presets.length}/10</small>
             </div>
             <div className="preset-list">
@@ -459,7 +505,7 @@ export default function Home() {
                 <div className="preset-chip" key={p.id}>
                   <button
                     onClick={() => loadPreset(p)}
-                    title={`Load ${p.name}`}
+                    title={t("Load {name}", { name: p.name })}
                   >
                     {p.name}
                   </button>
@@ -468,14 +514,14 @@ export default function Home() {
                       setRenaming(p.id);
                       setPresetName(p.name);
                     }}
-                    aria-label={`Rename ${p.name}`}
+                    aria-label={t("Rename {name}", { name: p.name })}
                   >
                     ✎
                   </button>
                   <button
                     className="preset-delete"
                     onClick={() => setDeleting(p)}
-                    aria-label={`Delete ${p.name}`}
+                    aria-label={t("Delete {name}", { name: p.name })}
                   >
                     ×
                   </button>
@@ -487,8 +533,11 @@ export default function Home() {
       </section>
       {notice && (
         <div className="notice" role="status">
-          <p>{notice}</p>
-          <button onClick={() => setNotice(null)} aria-label="Dismiss message">
+          <p>{t(notice)}</p>
+          <button
+            onClick={() => setNotice(null)}
+            aria-label={t("Dismiss message")}
+          >
             ×
           </button>
         </div>
@@ -497,32 +546,36 @@ export default function Home() {
         <section className="optimizer-panel">
           <div className="mastery-intro">
             <div>
-              <p className="eyebrow">Target setup</p>
-              <h2>Find the fastest legal route</h2>
+              <p className="eyebrow">{t("Target setup")}</p>
+              <h2>{t("Find the fastest legal route")}</h2>
             </div>
             <div className="optimizer-intro-actions">
               <p>
-                Enter desired levels; mastery prerequisites are added
-                automatically.
+                {t(
+                  "Enter desired levels; mastery prerequisites are added automatically.",
+                )}{" "}
               </p>
               <button
                 className="ghost-button"
                 onClick={() => patch({ targets: clone(initial) })}
               >
-                Reset targets
+                {t("Reset targets")}{" "}
               </button>
             </div>
           </div>
           <div className="target-grid">
             {CLASS_IDS.map((c) => (
               <fieldset key={c}>
-                <legend>{CLASS_NAMES[c]}</legend>
+                <legend>{t(CLASS_NAMES[c])}</legend>
                 {STAT_IDS.map((s) => (
                   <label key={s}>
-                    <span>{STAT_NAMES[s]}</span>
+                    <span>{t(STAT_NAMES[s])}</span>
                     <LevelInput
                       value={targets[c][s]}
-                      label={`${CLASS_NAMES[c]} ${STAT_NAMES[s]} target`}
+                      label={t("{class} {stat} target", {
+                        class: t(CLASS_NAMES[c]),
+                        stat: t(STAT_NAMES[s]),
+                      })}
                       onCommit={(value) => {
                         const next = clone(targets);
                         next[c][s] = value;
@@ -535,20 +588,20 @@ export default function Home() {
             ))}
           </div>
           {optimization.error ? (
-            <p role="alert">{optimization.error}</p>
+            <p role="alert">{t(optimization.error)}</p>
           ) : (
             <>
               <div className="optimizer-result">
                 <div>
-                  <span>Route cost</span>
+                  <span>{t("Route cost")}</span>
                   <strong>{money(optimization.cost)}</strong>
                 </div>
                 <div>
-                  <span>Upgrades</span>
+                  <span>{t("Upgrades")}</span>
                   <strong>{optimization.steps.length}</strong>
                 </div>
                 <div>
-                  <span>Time required</span>
+                  <span>{t("Time required")}</span>
                   <strong>
                     {duration(optimization.cost, guardianPoints, income)}
                   </strong>
@@ -561,21 +614,21 @@ export default function Home() {
                     setNotice("Optimized plan applied.");
                   }}
                 >
-                  Apply this plan
+                  {t("Apply this plan")}{" "}
                 </button>
               </div>
               <div className="route-list">
-                <h3>Recommended distribution</h3>
+                <h3>{t("Recommended distribution")}</h3>
                 <Distribution levels={optimization.plan} />
               </div>
               <div className="comparison">
                 <label>
-                  Compare with a saved preset{" "}
+                  {t("Compare with a saved preset")}{" "}
                   <select
                     value={comparingPreset ? comparison : ""}
                     onChange={(e) => setComparison(e.target.value)}
                   >
-                    <option value="">Choose a preset</option>
+                    <option value="">{t("Choose a preset")}</option>
                     {presets.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -591,23 +644,32 @@ export default function Home() {
                       {duration(alternative.cost, guardianPoints, income)}
                     </p>
                     <p>
-                      {money(Math.abs(alternative.cost - optimization.cost))}{" "}
-                      {alternative.cost >= optimization.cost ? "more" : "less"}{" "}
-                      than this target, including prerequisites.
+                      {t(
+                        alternative.cost >= optimization.cost
+                          ? "{cost} more than this target, including prerequisites."
+                          : "{cost} less than this target, including prerequisites.",
+                        {
+                          cost: money(
+                            Math.abs(alternative.cost - optimization.cost),
+                          ),
+                        },
+                      )}
                     </p>
                     <Distribution levels={alternative.plan} />
                   </div>
                 )}
               </div>
               <section className="journey">
-                <h3>Your upgrade route</h3>
+                <h3>{t("Your upgrade route")}</h3>
                 <p className="muted">
-                  Follow the purchases in order. Times use cumulative cost, your
-                  current balance and a constant income; update your resources
-                  after collecting points.
+                  {t(
+                    "Follow the purchases in order. Times use cumulative cost, your current balance and a constant income; update your resources after collecting points.",
+                  )}{" "}
                 </p>
                 {stages.length === 0 ? (
-                  <p>Your current account already meets these targets.</p>
+                  <p>
+                    {t("Your current account already meets these targets.")}
+                  </p>
                 ) : (
                   stages.map((stage, i) => (
                     <details
@@ -617,7 +679,7 @@ export default function Home() {
                     >
                       <summary>
                         <strong>
-                          {i + 1}. Mastery cap {stage.cap}
+                          {i + 1}. {t("Mastery cap {cap}", { cap: stage.cap })}
                         </strong>
                         <span>{money(stage.cost)}</span>
                         <span>
@@ -630,23 +692,32 @@ export default function Home() {
                       </summary>
                       <div className="stage-content">
                         <p>
-                          {stage.targetCount} target upgrades ·{" "}
-                          {stage.unlockCount} prerequisite upgrades · Total
-                          spent: {money(stage.cumulativeCost)}
+                          {t(
+                            "{targets} target upgrades · {unlocks} prerequisite upgrades · Total spent: {cost}",
+                            {
+                              targets: stage.targetCount,
+                              unlocks: stage.unlockCount,
+                              cost: money(stage.cumulativeCost),
+                            },
+                          )}
                           {stage.resultingCap > stage.cap &&
-                            ` · Unlocks cap ${stage.resultingCap}`}
+                            ` · ${t("Unlocks cap {cap}", { cap: stage.resultingCap })}`}
                         </p>
                         <ol>
                           {stage.steps.map((step, j) => (
                             <li key={j}>
                               <span className={`step-reason ${step.reason}`}>
-                                {step.reason === "target" ? "Target" : "Unlock"}
+                                {step.reason === "target"
+                                  ? t("Target")
+                                  : t("Unlock")}
                               </span>
                               <span>
-                                {CLASS_NAMES[step.classId]} ·{" "}
-                                {STAT_NAMES[step.statId].replace(
-                                  " Increase",
-                                  "",
+                                {t(CLASS_NAMES[step.classId])} ·{" "}
+                                {t(
+                                  STAT_NAMES[step.statId].replace(
+                                    " Increase",
+                                    "",
+                                  ),
                                 )}{" "}
                                 {step.destination - 1} → {step.destination}
                               </span>
@@ -671,12 +742,14 @@ export default function Home() {
         <>
           <section className="mastery-intro">
             <div>
-              <p className="eyebrow">Mastery tracks</p>
-              <h2>Shape your next upgrades</h2>
+              <p className="eyebrow">{t("Mastery tracks")}</p>
+              <h2>{t("Shape your next upgrades")}</h2>
             </div>
             <p>
-              Shared unlock cap: <b>{cap}</b>. All classes must reach each gate
-              before any class can cross it.
+              {t("Shared unlock cap:")} <b>{cap}</b>
+              {t(
+                ". All classes must reach each gate before any class can cross it.",
+              )}{" "}
             </p>
           </section>
           <div className="class-grid">
@@ -691,19 +764,21 @@ export default function Home() {
                   <div className="class-header">
                     <Icon id={c} />
                     <div>
-                      <h3>{CLASS_NAMES[c]}</h3>
+                      <h3>{t(CLASS_NAMES[c])}</h3>
                       <p>
-                        Class Mastery <strong>{total}</strong> / {cap}
+                        {t("Class Mastery")} <strong>{total}</strong> / {cap}
                       </p>
                     </div>
                     <span className="ready-pill">
-                      {locked ? "Locked" : "Ready"}
+                      {locked ? t("Locked") : t("Ready")}
                     </span>
                   </div>
                   <div
                     className="progress"
                     role="progressbar"
-                    aria-label={`${CLASS_NAMES[c]} mastery`}
+                    aria-label={t("{class} mastery", {
+                      class: t(CLASS_NAMES[c]),
+                    })}
                     aria-valuenow={total}
                     aria-valuemin={0}
                     aria-valuemax={cap}
@@ -725,15 +800,17 @@ export default function Home() {
                     return (
                       <div className="stat-row" key={s}>
                         <div className="stat-info">
-                          <strong>{STAT_NAMES[s]}</strong>
+                          <strong>{t(STAT_NAMES[s])}</strong>
                           <span>
-                            Initial {initial[c][s]} · Bonus +
-                            {bonusPercent(s, level).toFixed(1)}%
+                            {t("Initial {level} · Bonus +{bonus}%", {
+                              level: initial[c][s],
+                              bonus: bonusPercent(s, level).toFixed(1),
+                            })}
                           </span>
                           <small>
                             {nextCost === null
-                              ? "Maximum level reached"
-                              : `${isSpeculativeCost(level + 1) ? "Estimated next" : "Next"}: ${money(nextCost)}`}
+                              ? t("Maximum level reached")
+                              : `${t(isSpeculativeCost(level + 1) ? "Estimated next" : "Next")}: ${money(nextCost)}`}
                           </small>
                           <input
                             key={`${c}-${s}-${sliderMax}`}
@@ -742,7 +819,10 @@ export default function Home() {
                             min={initial[c][s]}
                             max={sliderMax}
                             value={level}
-                            aria-label={`${CLASS_NAMES[c]} ${STAT_NAMES[s]} planned level`}
+                            aria-label={t("{class} {stat} planned level", {
+                              class: t(CLASS_NAMES[c]),
+                              stat: t(STAT_NAMES[s]),
+                            })}
                             onChange={(e) =>
                               changeLevel(c, s, Number(e.target.value))
                             }
@@ -752,21 +832,30 @@ export default function Home() {
                           <button
                             disabled={level <= initial[c][s]}
                             onClick={() => changeLevel(c, s, level - 1)}
-                            aria-label={`Undo ${CLASS_NAMES[c]} ${STAT_NAMES[s]}`}
+                            aria-label={t("Undo {class} {stat}", {
+                              class: t(CLASS_NAMES[c]),
+                              stat: t(STAT_NAMES[s]),
+                            })}
                           >
                             −
                           </button>
                           <LevelInput
                             value={level}
                             min={initial[c][s]}
-                            label={`Set ${CLASS_NAMES[c]} ${STAT_NAMES[s]} level`}
+                            label={t("Set {class} {stat} level", {
+                              class: t(CLASS_NAMES[c]),
+                              stat: t(STAT_NAMES[s]),
+                            })}
                             onCommit={(v) => changeLevel(c, s, v)}
                           />
                           <button
                             className={!check.allowed ? "blocked" : ""}
                             disabled={level === MAX_LEVEL}
                             onClick={() => changeLevel(c, s, level + 1)}
-                            aria-label={`Increase ${CLASS_NAMES[c]} ${STAT_NAMES[s]}`}
+                            aria-label={t("Increase {class} {stat}", {
+                              class: t(CLASS_NAMES[c]),
+                              stat: t(STAT_NAMES[s]),
+                            })}
                           >
                             +
                           </button>
@@ -778,8 +867,10 @@ export default function Home() {
                     className={`lock-hint ${locked ? "" : "reserved"}`}
                     aria-hidden={!locked}
                   >
-                    All classes must reach mastery {cap} to unlock mastery{" "}
-                    {cap + 1}–{cap + 10}.
+                    {t(
+                      "All classes must reach mastery {cap} to unlock mastery {from}–{to}.",
+                      { cap, from: cap + 1, to: cap + 10 },
+                    )}
                   </p>
                 </article>
               );
@@ -788,27 +879,29 @@ export default function Home() {
         </>
       )}
       <footer>
-        <button onClick={() => setClearing(true)}>Clear all saved data</button>
+        <button onClick={() => setClearing(true)}>
+          {t("Clear all saved data")}
+        </button>
         <span>
-          v{__APP_VERSION__} · build {__BUILD_ID__}
+          v{__APP_VERSION__} · {t("build")} {__BUILD_ID__}
         </span>
         <a
           href="https://github.com/Jikolr/GT-mastery-planner"
           target="_blank"
           rel="noreferrer"
         >
-          Source & help
+          {t("Source & help")}{" "}
         </a>
         <a
           href="https://github.com/Jikolr/GT-mastery-planner/releases"
           target="_blank"
           rel="noreferrer"
         >
-          Desktop downloads
+          {t("Desktop downloads")}{" "}
         </a>
       </footer>
       {draft && (
-        <Modal title="Edit current levels" onClose={() => setDraft(null)}>
+        <Modal title={t("Edit current levels")} onClose={() => setDraft(null)}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -826,19 +919,23 @@ export default function Home() {
             }}
           >
             <p className="modal-copy">
-              Enter the levels already purchased in game. Saving resets planned
-              upgrades.
+              {t(
+                "Enter the levels already purchased in game. Saving resets planned upgrades.",
+              )}{" "}
             </p>
             <div className="level-editor">
               {CLASS_IDS.map((c) => (
                 <fieldset key={c}>
-                  <legend>{CLASS_NAMES[c]}</legend>
+                  <legend>{t(CLASS_NAMES[c])}</legend>
                   {STAT_IDS.map((s) => (
                     <label key={s}>
-                      <span>{STAT_NAMES[s]}</span>
+                      <span>{t(STAT_NAMES[s])}</span>
                       <LevelInput
                         value={draft[c][s]}
-                        label={`${CLASS_NAMES[c]} ${STAT_NAMES[s]} current level`}
+                        label={t("{class} {stat} current level", {
+                          class: t(CLASS_NAMES[c]),
+                          stat: t(STAT_NAMES[s]),
+                        })}
                         onCommit={(v) => {
                           const next = clone(draft);
                           next[c][s] = v;
@@ -847,13 +944,15 @@ export default function Home() {
                       />
                     </label>
                   ))}
-                  <strong>Mastery {classTotal(draft, c)}</strong>
+                  <strong>
+                    {t("Mastery")} {classTotal(draft, c)}
+                  </strong>
                 </fieldset>
               ))}
             </div>
             {editorError && (
               <p role="alert" className="form-error">
-                {editorError}
+                {t(editorError)}
               </p>
             )}
             <div className="modal-actions">
@@ -862,10 +961,10 @@ export default function Home() {
                 className="ghost-button"
                 onClick={() => setDraft(null)}
               >
-                Cancel
+                {t("Cancel")}{" "}
               </button>
               <button className="primary-button" type="submit">
-                Save & reset plan
+                {t("Save & reset plan")}{" "}
               </button>
             </div>
           </form>
@@ -873,7 +972,7 @@ export default function Home() {
       )}
       {presetName !== null && (
         <Modal
-          title={renaming ? "Rename preset" : "Name this preset"}
+          title={renaming ? t("Rename preset") : t("Name this preset")}
           onClose={() => setPresetName(null)}
         >
           <form
@@ -884,11 +983,15 @@ export default function Home() {
           >
             <p className="modal-copy">
               {renaming
-                ? "Choose a new name."
-                : `Save the ${tab === "optimizer" ? "recommended" : "planned"} distribution for all four classes.`}
+                ? t("Choose a new name.")
+                : t(
+                    tab === "optimizer"
+                      ? "Save the recommended distribution for all four classes."
+                      : "Save the planned distribution for all four classes.",
+                  )}
             </p>
             <label className="preset-name-field">
-              Preset name
+              {t("Preset name")}{" "}
               <input
                 autoFocus
                 required
@@ -903,7 +1006,7 @@ export default function Home() {
                 type="submit"
                 disabled={!presetName.trim()}
               >
-                Save preset
+                {t("Save preset")}{" "}
               </button>
             </div>
           </form>
@@ -911,16 +1014,17 @@ export default function Home() {
       )}
       {deleting && (
         <Modal
-          title={`Delete “${deleting.name}”?`}
+          title={t("Delete “{name}”?", { name: deleting.name })}
           onClose={() => setDeleting(null)}
         >
           <p className="modal-copy">
-            This removes this preset from this device. Your current plan is
-            kept.
+            {t(
+              "This removes this preset from this device. Your current plan is kept.",
+            )}{" "}
           </p>
           <div className="modal-actions">
             <button className="ghost-button" onClick={() => setDeleting(null)}>
-              Cancel
+              {t("Cancel")}{" "}
             </button>
             <button
               className="danger-button"
@@ -929,17 +1033,21 @@ export default function Home() {
                 setDeleting(null);
               }}
             >
-              Delete preset
+              {t("Delete preset")}{" "}
             </button>
           </div>
         </Modal>
       )}
       {clearing && (
-        <Modal title="Clear all saved data?" onClose={() => setClearing(false)}>
+        <Modal
+          title={t("Clear all saved data?")}
+          onClose={() => setClearing(false)}
+        >
           <p className="modal-copy">
-            This deletes account levels, resources, targets and all{" "}
-            {presets.length} presets on this device. Export a backup first if
-            you want to keep them.
+            {t(
+              "This deletes account levels, resources, targets and all {count} presets on this device. Export a backup first if you want to keep them.",
+              { count: presets.length },
+            )}
           </p>
           <div className="modal-actions">
             <button
@@ -948,29 +1056,36 @@ export default function Home() {
                 download(serializeBackup(data), "guardian-mastery-backup.json")
               }
             >
-              Export backup
+              {t("Export backup")}{" "}
             </button>
             <button className="ghost-button" onClick={() => setClearing(false)}>
-              Cancel
+              {t("Cancel")}{" "}
             </button>
             <button className="danger-button" onClick={clearAll}>
-              Clear everything
+              {t("Clear everything")}{" "}
             </button>
           </div>
         </Modal>
       )}
       {imported && (
-        <Modal title="Restore this backup?" onClose={() => setImported(null)}>
+        <Modal
+          title={t("Restore this backup?")}
+          onClose={() => setImported(null)}
+        >
           <p className="modal-copy">
-            Replace this device’s account levels, resources, targets and presets
-            with the backup: {imported.presets.length} presets,{" "}
-            {money(imported.guardianPoints)}, {number.format(imported.income)}{" "}
-            GP/hour. Missing mastery prerequisites are recalculated.
+            {t(
+              "Replace this device’s account levels, resources, targets and presets with the backup: {count} presets, {points}, {income} GP/hour. Missing mastery prerequisites are recalculated.",
+              {
+                count: imported.presets.length,
+                points: money(imported.guardianPoints),
+                income: number.format(imported.income),
+              },
+            )}
           </p>
           <Distribution levels={imported.planned} />
           <div className="modal-actions">
             <button className="ghost-button" onClick={() => setImported(null)}>
-              Cancel
+              {t("Cancel")}{" "}
             </button>
             <button
               className="primary-button"
@@ -982,19 +1097,20 @@ export default function Home() {
                 setNotice("Backup restored.");
               }}
             >
-              Restore backup
+              {t("Restore backup")}{" "}
             </button>
           </div>
         </Modal>
       )}
       {shareLink && (
-        <Modal title="Share this setup" onClose={() => setShareLink(null)}>
+        <Modal title={t("Share this setup")} onClose={() => setShareLink(null)}>
           <p className="modal-copy">
-            This link includes only the target levels. Your points, income and
-            preset names stay private.
+            {t(
+              "This link includes only the target levels. Your points, income and preset names stay private.",
+            )}{" "}
           </p>
           <label className="preset-name-field">
-            Setup link
+            {t("Setup link")}{" "}
             <input
               readOnly
               value={shareLink}
@@ -1013,21 +1129,22 @@ export default function Home() {
                 }
               }}
             >
-              Copy link
+              {t("Copy link")}{" "}
             </button>
           </div>
         </Modal>
       )}
       {shared && (
-        <Modal title="Shared setup" onClose={closeShared}>
+        <Modal title={t("Shared setup")} onClose={closeShared}>
           <p className="modal-copy">
-            Preview these targets. Your current account and presets are kept;
-            the route will be calculated using your own resources.
+            {t(
+              "Preview these targets. Your current account and presets are kept; the route will be calculated using your own resources.",
+            )}{" "}
           </p>
           <Distribution levels={shared} />
           <div className="modal-actions">
             <button className="ghost-button" onClick={closeShared}>
-              Cancel
+              {t("Cancel")}{" "}
             </button>
             <button
               className="primary-button"
@@ -1037,7 +1154,7 @@ export default function Home() {
                 closeShared();
               }}
             >
-              Use as targets
+              {t("Use as targets")}{" "}
             </button>
           </div>
         </Modal>

@@ -79,9 +79,24 @@ h3 {
 }
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
   margin-bottom: 24px;
+}
+.language-toggle {
+  flex-shrink: 0;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.language-toggle .selected-language {
+  color: var(--accent);
+}
+html[lang="ko"] {
+  font-family:
+    "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 .brand-mark {
   display: grid;

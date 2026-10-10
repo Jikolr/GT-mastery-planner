@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added an English/Korean language switch with a persistent device-local preference.
+- Localized the planner, optimizer, routes, dialogs, validation/storage notices, accessibility labels, dates and durations without changing saved account data.
+
 ## 0.4.0
 
 - Prevented manual reductions from breaking shared mastery gates; preset loads now adapt safely to current account levels.

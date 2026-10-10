@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { useI18n } from "../i18n";
 
 /** Native modal dialog supplies focus trapping, Escape and inert background. */
 export function Modal({
@@ -11,6 +12,7 @@ export function Modal({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const { t } = useI18n();
   useEffect(() => {
     const dialog = ref.current!;
     const previous = document.activeElement as HTMLElement | null;
@@ -24,7 +26,7 @@ export function Modal({
     <dialog ref={ref} className="modal" aria-label={title} onCancel={onClose}>
       <div className="modal-head">
         <h2>{title}</h2>
-        <button onClick={onClose} aria-label="Close dialog">
+        <button onClick={onClose} aria-label={t("Close dialog")}>
           ×
         </button>
       </div>
