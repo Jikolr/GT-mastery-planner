@@ -121,6 +121,8 @@ describe("optimizer", () => {
     expect(result.steps).toHaveLength(1440);
     expect(result.error).toBeUndefined();
   });
+  // Replaying 200 routes includes thousands of assertions, not just optimizer runtime.
+  // Allow slower shared CI runners without weakening coverage or other test deadlines.
   it("replays legal minimum-cost routes for 200 deterministic target distributions", () => {
     let seed = 104729;
     const random = (max: number) => {
@@ -181,5 +183,5 @@ describe("optimizer", () => {
         ),
       ).toBe(true);
     }
-  });
+  }, 30_000);
 });
