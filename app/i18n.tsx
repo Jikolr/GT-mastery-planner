@@ -6,8 +6,19 @@ import {
   type ReactNode,
 } from "react";
 import { formatDuration as englishDuration } from "./game/mastery";
+import { translations } from "./translations";
 
-export type Language = "en" | "ko";
+export const languages = {
+  en: { name: "English", locale: "en-US" },
+  ko: { name: "한국어", locale: "ko-KR" },
+  ja: { name: "日本語", locale: "ja-JP" },
+  es: { name: "Español", locale: "es-ES" },
+  "zh-CN": { name: "简体中文", locale: "zh-CN" },
+} as const;
+export type Language = keyof typeof languages;
+export function isLanguage(value: unknown): value is Language {
+  return typeof value === "string" && Object.hasOwn(languages, value);
+}
 export const LANGUAGE_KEY = "gt-mastery-language";
 export type Message =
   string | { key: string; values: Record<string, string | number> };
@@ -15,6 +26,7 @@ export type Message =
 // English source strings are stable message keys. User content and saved stat IDs
 // never pass through this catalog, so changing languages cannot alter a setup.
 export const korean: Record<string, string> = {
+  Language: "언어",
   "Guardian Tales Utility": "가디언 테일즈 도우미",
   "Mastery Planner": "숙련도 플래너",
   "Guardian Tales Mastery Planner": "가디언 테일즈 숙련도 플래너",
@@ -226,6 +238,22 @@ export const korean: Record<string, string> = {
     "이 기기에 언어 설정을 저장할 수 없습니다.",
 };
 
+export const catalogs: Record<
+  Exclude<Language, "en">,
+  Record<string, string>
+> = {
+  ko: korean,
+  ja: Object.fromEntries(
+    Object.entries(translations).map(([key, row]) => [key, row[0]]),
+  ),
+  es: Object.fromEntries(
+    Object.entries(translations).map(([key, row]) => [key, row[1]]),
+  ),
+  "zh-CN": Object.fromEntries(
+    Object.entries(translations).map(([key, row]) => [key, row[2]]),
+  ),
+};
+
 export function translate(
   language: Language,
   message: Message | null | undefined,
@@ -250,7 +278,9 @@ export function translate(
     return translate(language, "Targets must be between level 0 and {level}.", {
       level: limit[1],
     });
-  const template = language === "ko" ? (korean[message] ?? message) : message;
+  const catalog = language === "en" ? undefined : catalogs[language];
+  const template =
+    catalog && Object.hasOwn(catalog, message) ? catalog[message] : message;
   return template.replace(/\{(\w+)\}/g, (match, key: string) => {
     const value = values[key];
     return value === undefined
@@ -267,10 +297,20 @@ export function localizedDuration(hours: number, language: Language): string {
     days = Math.floor(minutes / 1440),
     h = Math.floor((minutes % 1440) / 60),
     m = minutes % 60;
+  const units = {
+    ko: ["일", "시간", "분"],
+    ja: ["日", "時間", "分"],
+    "zh-CN": ["天", "小时", "分钟"],
+    es: [
+      days === 1 ? " día" : " días",
+      h === 1 ? " hora" : " horas",
+      m === 1 ? " minuto" : " minutos",
+    ],
+  }[language];
   return [
-    days ? `${days}일` : "",
-    h ? `${h}시간` : "",
-    m || (!days && !h) ? `${m}분` : "",
+    days ? `${days}${units[0]}` : "",
+    h ? `${h}${units[1]}` : "",
+    m || (!days && !h) ? `${m}${units[2]}` : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -278,21 +318,21 @@ export function localizedDuration(hours: number, language: Language): string {
 
 const LanguageContext = createContext<{
   language: Language;
-  toggle: () => void;
+  changeLanguage: (next: Language) => void;
   preferenceError: boolean;
-}>({ language: "en", toggle: () => {}, preferenceError: false });
+}>({ language: "en", changeLanguage: () => {}, preferenceError: false });
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>(() => {
     try {
-      return localStorage.getItem(LANGUAGE_KEY) === "ko" ? "ko" : "en";
+      const saved = localStorage.getItem(LANGUAGE_KEY);
+      return isLanguage(saved) ? saved : "en";
     } catch {
       return "en";
     }
   });
   const [preferenceError, setPreferenceError] = useState(false);
-  function toggle() {
-    const next = language === "en" ? "ko" : "en";
+  function changeLanguage(next: Language) {
     setLanguage(next);
     try {
       localStorage.setItem(LANGUAGE_KEY, next);
@@ -317,7 +357,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       });
   }, [language]);
   return (
-    <LanguageContext.Provider value={{ language, toggle, preferenceError }}>
+    <LanguageContext.Provider
+      value={{ language, changeLanguage, preferenceError }}
+    >
       {children}
     </LanguageContext.Provider>
   );
@@ -325,7 +367,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
 export function useI18n() {
   const context = useContext(LanguageContext);
-  const locale = context.language === "ko" ? "ko-KR" : "en-US";
+  const locale = languages[context.language].locale;
   const number = new Intl.NumberFormat(locale);
   return {
     ...context,

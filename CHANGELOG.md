@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added Japanese, Spanish and Simplified Chinese translations with a five-language selector, localized durations and persistent preference.
 - Added an English/Korean language switch with a persistent device-local preference.
 - Localized the planner, optimizer, routes, dialogs, validation/storage notices, accessibility labels, dates and durations without changing saved account data.
 

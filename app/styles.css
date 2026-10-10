@@ -89,8 +89,14 @@ h3 {
   font-size: 13px;
   white-space: nowrap;
 }
-.language-toggle .selected-language {
-  color: var(--accent);
+html[lang="ja"] {
+  font-family:
+    "Yu Gothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  overflow-wrap: anywhere;
+}
+html[lang="zh-CN"] {
+  font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+  overflow-wrap: anywhere;
 }
 html[lang="ko"] {
   font-family:

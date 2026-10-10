@@ -40,7 +40,7 @@ import { usePlanner } from "./usePlanner";
 import { Modal } from "./components/Modal";
 import { LevelInput } from "./components/LevelInput";
 import { OfflineStatus } from "./pwa";
-import { useI18n, korean, type Message } from "./i18n";
+import { useI18n, korean, languages, isLanguage, type Message } from "./i18n";
 import warriorIcon from "../Assets/warrior.svg";
 import rangedIcon from "../Assets/ranged.svg";
 import tankIcon from "../Assets/tank.svg";
@@ -102,7 +102,7 @@ export default function Home() {
     t,
     language,
     locale,
-    toggle,
+    changeLanguage,
     preferenceError,
     number,
     money,
@@ -273,26 +273,21 @@ export default function Home() {
           <i />
           {t(saveStatus)}
         </span>
-        <button
-          type="button"
+        <select
           className="ghost-button language-toggle"
-          onClick={toggle}
-          aria-label={language === "en" ? "Switch to Korean" : "영어로 전환"}
+          value={language}
+          onChange={(event) => {
+            if (isLanguage(event.target.value))
+              changeLanguage(event.target.value);
+          }}
+          aria-label={t("Language")}
         >
-          <span
-            lang="en"
-            className={language === "en" ? "selected-language" : ""}
-          >
-            English
-          </span>
-          <span aria-hidden="true"> / </span>
-          <span
-            lang="ko"
-            className={language === "ko" ? "selected-language" : ""}
-          >
-            한국어
-          </span>
-        </button>
+          {Object.entries(languages).map(([code, info]) => (
+            <option key={code} value={code} lang={code}>
+              {info.name}
+            </option>
+          ))}
+        </select>
       </header>
       {preferenceError && (
         <p role="status" className="storage-warning">

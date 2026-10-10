@@ -1,10 +1,41 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
-import { korean, translate, localizedDuration } from "./i18n";
+import {
+  catalogs,
+  korean,
+  translate,
+  localizedDuration,
+  isLanguage,
+} from "./i18n";
 import { CLASS_NAMES, STAT_NAMES, editPlan, emptyLevels } from "./game/mastery";
 
 describe("English / Korean localization", () => {
+  it("covers every message and placeholder in all additional languages", () => {
+    const tokens = (s: string) =>
+      [...s.matchAll(/\{\w+\}/g)].map((m) => m[0]).sort();
+    for (const [language, catalog] of Object.entries(catalogs)) {
+      expect(Object.keys(catalog).sort(), language).toEqual(
+        Object.keys(korean).sort(),
+      );
+      for (const [key, value] of Object.entries(catalog)) {
+        expect(value.trim(), `${language}: ${key}`).not.toBe("");
+        expect(tokens(value), `${language}: ${key}`).toEqual(tokens(key));
+      }
+    }
+  });
+  it("validates saved language codes and formats the new durations", () => {
+    for (const code of ["en", "ko", "ja", "es", "zh-CN"])
+      expect(isLanguage(code)).toBe(true);
+    for (const code of [null, "fr", "toString", "__proto__"])
+      expect(isLanguage(code)).toBe(false);
+    expect(localizedDuration(25.5, "ja")).toBe("1日 1時間 30分");
+    expect(localizedDuration(25.5, "es")).toBe("1 día 1 hora 30 minutos");
+    expect(localizedDuration(48, "es")).toBe("2 días");
+    expect(localizedDuration(25.5, "zh-CN")).toBe("1天 1小时 30分钟");
+    expect(localizedDuration(0, "es")).toBe("0 minutos");
+    expect(localizedDuration(0.001, "ja")).toBe("1分");
+  });
   it("covers all static translation calls and retains every interpolation parameter", () => {
     for (const [english, ko] of Object.entries(korean)) {
       expect(ko.trim(), english).not.toBe("");
