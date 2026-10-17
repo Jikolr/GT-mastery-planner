@@ -1,9 +1,9 @@
 import {
   CLASS_IDS,
+  MAX_LEVEL,
   STAT_IDS,
   emptyLevels,
   isLegalDistribution,
-  isLevels,
   optimizeTarget,
   type Levels,
 } from "./game/mastery";
@@ -36,7 +36,46 @@ const record = (value: unknown): value is Record<string, unknown> =>
 const resource = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 
+// Earlier releases allowed theoretical levels through 90. Validate that old
+// range before reducing plans, targets or presets to the current game limit.
+const PREVIOUS_MAX_LEVEL = 90;
+const isSavedLevels = (value: unknown): value is Levels =>
+  record(value) &&
+  CLASS_IDS.every((c) => {
+    const stats = value[c];
+    return (
+      record(stats) &&
+      STAT_IDS.every((s) => {
+        const level = stats[s];
+        return (
+          typeof level === "number" &&
+          Number.isInteger(level) &&
+          level >= 0 &&
+          level <= Math.max(MAX_LEVEL, PREVIOUS_MAX_LEVEL)
+        );
+      })
+    );
+  });
+const capSavedLevels = (levels: Levels): Levels => {
+  const result = structuredClone(levels);
+  for (const c of CLASS_IDS)
+    for (const s of STAT_IDS) result[c][s] = Math.min(MAX_LEVEL, levels[c][s]);
+  return result;
+};
+const exceedsCurrentLimit = (levels: Levels): boolean =>
+  CLASS_IDS.some((c) => STAT_IDS.some((s) => levels[c][s] > MAX_LEVEL));
+const LEVEL_LIMIT_WARNING =
+  `Saved plans, targets and presets above level ${MAX_LEVEL} were reduced to the current limit. ` +
+  "Mastery prerequisites were added where needed; your current account levels and resources were preserved.";
+
 export function parsePresets(value: unknown): Preset[] {
+  return parseSavedPresets(value).map((p) => ({
+    ...p,
+    levels: capSavedLevels(p.levels),
+  }));
+}
+
+function parseSavedPresets(value: unknown): Preset[] {
   if (!Array.isArray(value) || value.length > PRESET_LIMIT)
     throw new Error("A backup can contain at most 10 presets.");
   const ids = new Set<string>();
@@ -49,7 +88,7 @@ export function parsePresets(value: unknown): Preset[] {
       typeof p.name !== "string" ||
       !p.name.trim() ||
       p.name.trim().length > 40 ||
-      !isLevels(p.levels)
+      !isSavedLevels(p.levels)
     ) {
       throw new Error("One or more presets are invalid.");
     }
@@ -60,30 +99,46 @@ export function parsePresets(value: unknown): Preset[] {
 
 /** Strict shape validation; plans from old versions are adapted, never account levels. */
 export function parseSnapshot(value: unknown): Snapshot {
+  return parseSnapshotResult(value).data;
+}
+
+function parseSnapshotResult(value: unknown): {
+  data: Snapshot;
+  capped: boolean;
+} {
   if (
     !record(value) ||
     value.version !== 2 ||
     !resource(value.guardianPoints) ||
     !resource(value.income) ||
     !isLegalDistribution(value.initial) ||
-    !isLevels(value.planned) ||
-    !isLevels(value.targets)
+    !isSavedLevels(value.planned) ||
+    !isSavedLevels(value.targets)
   ) {
     throw new Error(
       "This is not a valid planner backup. Check its version, resources and current mastery levels.",
     );
   }
+  const presets = parseSavedPresets(value.presets);
+  const capped = [
+    value.planned,
+    value.targets,
+    ...presets.map((p) => p.levels),
+  ].some(exceedsCurrentLimit);
   const initial = structuredClone(value.initial);
-  const planned = optimizeTarget(initial, value.planned);
+  const planned = optimizeTarget(initial, capSavedLevels(value.planned));
   if (planned.error) throw new Error(planned.error);
   return {
-    version: 2,
-    guardianPoints: value.guardianPoints,
-    income: value.income,
-    initial,
-    planned: planned.plan,
-    targets: structuredClone(value.targets),
-    presets: parsePresets(value.presets),
+    data: {
+      version: 2,
+      guardianPoints: value.guardianPoints,
+      income: value.income,
+      initial,
+      planned: planned.plan,
+      targets: capSavedLevels(value.targets),
+      presets: presets.map((p) => ({ ...p, levels: capSavedLevels(p.levels) })),
+    },
+    capped,
   };
 }
 
@@ -99,25 +154,32 @@ export function loadSnapshot(storage: Pick<Storage, "getItem">): Loaded {
   let oldPresets: string | null = null;
   try {
     raw = storage.getItem(STORAGE_KEY);
-    if (raw !== null)
-      return { data: parseSnapshot(JSON.parse(raw)), blocked: false };
+    if (raw !== null) {
+      const parsed = parseSnapshotResult(JSON.parse(raw));
+      return {
+        data: parsed.data,
+        blocked: false,
+        warning: parsed.capped ? LEVEL_LIMIT_WARNING : undefined,
+      };
+    }
     old = storage.getItem(LEGACY_KEY);
     oldPresets = storage.getItem(LEGACY_PRESETS_KEY);
     if (old === null && oldPresets === null)
       return { data: newSnapshot(), blocked: false };
     const legacy = old ? JSON.parse(old) : newSnapshot();
     if (!record(legacy)) throw new Error("Invalid legacy data.");
-    const data = parseSnapshot({
+    const parsed = parseSnapshotResult({
       ...legacy,
       version: 2,
       targets: legacy.planned ?? emptyLevels(),
       presets: JSON.parse(oldPresets ?? "[]"),
     });
     return {
-      data,
+      data: parsed.data,
       blocked: false,
-      warning:
-        "Previous saves imported. Any missing mastery prerequisites were added to your plan; your real account levels were preserved.",
+      warning: parsed.capped
+        ? LEVEL_LIMIT_WARNING
+        : "Previous saves imported. Any missing mastery prerequisites were added to your plan; your real account levels were preserved.",
     };
   } catch {
     return {
@@ -166,7 +228,7 @@ export function parseSetupHash(hash: string): Levels | null {
   const values = hash.slice(7).split(",");
   if (
     values.length !== 16 ||
-    values.some((v) => !/^\d{1,2}$/.test(v) || Number(v) > 90)
+    values.some((v) => !/^\d{1,2}$/.test(v) || Number(v) > MAX_LEVEL)
   )
     throw new Error("This setup link contains invalid levels.");
   const levels = emptyLevels();

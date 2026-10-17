@@ -11,9 +11,9 @@ import {
   classTotals,
   deficitFor,
   editPlan,
+  guardianPointsAfterReset,
   hoursUntilAffordable,
   isLegalDistribution,
-  isSpeculativeCost,
   optimizeTarget,
   routeStages,
   targetDate,
@@ -155,6 +155,8 @@ export default function Home() {
       ? optimization.cost
       : totalPlannedCost(initial, planned);
   const remaining = guardianPoints - cost;
+  const resetPoints = guardianPointsAfterReset(initial, guardianPoints);
+  const investedPoints = guardianPointsAfterReset(initial, 0);
   const deficit = deficitFor(remaining);
   const eta = deficit > 0 ? targetDate(clock, deficit, income) : null;
   const cap = unlockedCap(planned);
@@ -326,12 +328,6 @@ export default function Home() {
           {t("Target optimizer")}{" "}
         </button>
       </nav>
-      <div className="speculative-note" role="note">
-        <strong>{t("Estimated levels:")}</strong>{" "}
-        {t(
-          "costs for levels 71–90 are speculative projections assuming the observed ×2.5 scaling continues after level 70.",
-        )}{" "}
-      </div>
       <section className={`summary-card ${remaining < 0 ? "is-negative" : ""}`}>
         <div className="summary-heading">
           <div>
@@ -431,6 +427,34 @@ export default function Home() {
             <strong title={money(remaining)}>{money(remaining)}</strong>
           </div>
         </div>
+        <section className="reset-summary" aria-labelledby="reset-points-label">
+          <div className="reset-total">
+            <span id="reset-points-label">
+              {t("Guardian Points after reset")}
+            </span>
+            <output aria-labelledby="reset-points-label">
+              {money(resetPoints)}
+            </output>
+            <small>
+              {t("Includes {points} invested in your current levels.", {
+                points: money(investedPoints),
+              })}
+            </small>
+          </div>
+          <details className="reset-help">
+            <summary>{t("How to plan a reset")}</summary>
+            <p>
+              {t(
+                "This is your current balance plus the points spent across all 16 current levels.",
+              )}
+            </p>
+            <p>
+              {t(
+                "Note this total, set all current levels to 0, enter the total as Current Guardian Points, then enter your targets in Target optimizer.",
+              )}
+            </p>
+          </details>
+        </section>
         {deficit > 0 && (
           <div className="deficit-strip">
             <div>
@@ -716,12 +740,7 @@ export default function Home() {
                                 )}{" "}
                                 {step.destination - 1} → {step.destination}
                               </span>
-                              <strong>
-                                {isSpeculativeCost(step.destination)
-                                  ? "≈ "
-                                  : ""}
-                                {money(step.cost)}
-                              </strong>
+                              <strong>{money(step.cost)}</strong>
                             </li>
                           ))}
                         </ol>
@@ -805,7 +824,7 @@ export default function Home() {
                           <small>
                             {nextCost === null
                               ? t("Maximum level reached")
-                              : `${t(isSpeculativeCost(level + 1) ? "Estimated next" : "Next")}: ${money(nextCost)}`}
+                              : `${t("Next")}: ${money(nextCost)}`}
                           </small>
                           <input
                             key={`${c}-${s}-${sliderMax}`}

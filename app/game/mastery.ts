@@ -17,11 +17,9 @@ export const STAT_NAMES: Record<StatId, string> = {
   skillDamage: "Skill Damage Increase",
 };
 
-export const MAX_LEVEL = 90;
-export const SPECULATIVE_FROM_LEVEL = 71;
+export const MAX_LEVEL = 64;
 
-// Levels 1–70 follow the observed curve. Levels 71–90 deliberately extend the
-// same ×2.5-per-decade rule and are marked as estimates throughout the UI.
+// Costs are indexed by destination level and follow the observed curve through 64.
 export const COSTS: readonly number[] = Array.from(
   { length: MAX_LEVEL },
   (_, index) => {
@@ -88,10 +86,6 @@ export function upgradeCost(destinationLevel: number): number | null {
     : null;
 }
 
-export function isSpeculativeCost(destinationLevel: number): boolean {
-  return destinationLevel >= SPECULATIVE_FROM_LEVEL;
-}
-
 export type UpgradeCheck =
   | { allowed: true; cost: number }
   | {
@@ -144,6 +138,13 @@ export function totalPlannedCost(initial: Levels, planned: Levels): number {
       ),
     0,
   );
+}
+
+export function guardianPointsAfterReset(
+  currentLevels: Levels,
+  currentPoints: number,
+): number {
+  return currentPoints + totalPlannedCost(emptyLevels(), currentLevels);
 }
 
 export function remainingPoints(starting: number, plannedCost: number): number {

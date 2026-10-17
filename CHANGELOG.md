@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Set the individual mastery-level maximum to 64, verified the latest destination-level costs, and removed speculative higher-level planning.
+- Added Guardian Points after reset: the current balance plus all points invested across the 16 current mastery levels, with guidance for comparing a fresh build in the target optimizer.
+- Adapted older plans, targets and presets to the level-64 cap while preserving invalid real account levels through the existing recovery flow; shared setup links above the cap are rejected.
 - Added Japanese, Spanish and Simplified Chinese translations with a five-language selector, localized durations and persistent preference.
 - Added an English/Korean language switch with a persistent device-local preference.
 - Localized the planner, optimizer, routes, dialogs, validation/storage notices, accessibility labels, dates and durations without changing saved account data.

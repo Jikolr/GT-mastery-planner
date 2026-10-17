@@ -61,13 +61,6 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "Optimizador de objetivos",
     "目标优化器",
   ],
-  "Estimated levels:": ["推定レベル：", "Niveles estimados:", "推测等级："],
-  "costs for levels 71–90 are speculative projections assuming the observed ×2.5 scaling continues after level 70.":
-    [
-      "レベル71～90のコストは、レベル70以降も確認済みの2.5倍の増加率が続くと仮定した推定値です。",
-      "los costes de los niveles 71–90 son proyecciones especulativas que suponen que el factor ×2,5 observado continúa después del nivel 70.",
-      "71至90级的费用为推测值，假设70级后仍遵循已观察到的2.5倍增长规律。",
-    ],
   "Your resources": ["所持リソース", "Tus recursos", "持有资源"],
   "Your target budget": [
     "目標達成の予算",
@@ -97,6 +90,39 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "Puntos de guardián actuales",
     "当前守护者点数",
   ],
+  "Guardian Points after reset": [
+    "リセット後のガーディアンポイント",
+    "Puntos de guardián tras el reinicio",
+    "重置后的守护者点数",
+  ],
+  "Includes {points} invested in your current levels.": [
+    "現在のレベルに使用した{points}を含みます。",
+    "Incluye {points} invertidos en tus niveles actuales.",
+    "包含当前等级已投入的{points}。",
+  ],
+  "How to plan a reset": [
+    "リセット後の計画方法",
+    "Cómo planificar un reinicio",
+    "如何规划重置",
+  ],
+  "This is your current balance plus the points spent across all 16 current levels.":
+    [
+      "現在の所持ポイントに、全16項目の現在のレベルまでに使用したポイントを合計した値です。",
+      "Es tu saldo actual más los puntos gastados en los 16 niveles actuales.",
+      "这是当前持有点数与全部16项属性升至当前等级所消耗点数的总和。",
+    ],
+  "Note this total, set all current levels to 0, enter the total as Current Guardian Points, then enter your targets in Target optimizer.":
+    [
+      "この合計を控え、現在のレベルをすべて0にし、合計を「現在のガーディアンポイント」に入力してください。その後、「目標の最適化」で目標レベルを入力してください。",
+      "Anota este total, pon todos los niveles actuales a 0, introduce el total en Puntos de guardián actuales y después introduce tus objetivos en Optimizador de objetivos.",
+      "记下此总数，将所有当前等级设为0，把总数填入“当前守护者点数”，然后在“目标优化器”中输入目标等级。",
+    ],
+  "Saved plans, targets and presets above level 64 were reduced to the current limit. Mastery prerequisites were added where needed; your current account levels and resources were preserved.":
+    [
+      "保存済みの計画・目標・プリセットで64を超えるレベルを現在の上限に引き下げました。必要な熟練度の前提条件を追加し、現在のアカウントのレベルとリソースは維持しました。",
+      "Los niveles superiores a 64 en planes, objetivos y configuraciones guardados se redujeron al límite actual. Se añadieron los requisitos de maestría necesarios; se conservaron los niveles y recursos actuales de tu cuenta.",
+      "已将保存的计划、目标和预设中超过64的等级降至当前上限，并补齐必要的精通前置等级；当前账号等级和资源保持不变。",
+    ],
   "Guardian Points / hour": [
     "1時間あたりのガーディアンポイント",
     "Puntos de guardián por hora",
@@ -279,11 +305,6 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "已达到最高等级",
   ],
   Next: ["次の強化", "Siguiente", "下一级"],
-  "Estimated next": [
-    "次の強化の推定コスト",
-    "Estimación siguiente",
-    "下一级预估费用",
-  ],
   "{class} {stat} planned level": [
     "{class} {stat} 計画レベル",
     "Nivel previsto de {stat} de {class}",
