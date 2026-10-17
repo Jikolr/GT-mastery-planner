@@ -16,8 +16,9 @@ When **Update application** appears, click it to load the cached new version. Th
 
 - Switch the entire interface between **English, 한국어, 日本語, Español and 简体中文 (Simplified Chinese)** with the language selector in the header. The choice is saved on this device separately from account data. Preset names and shared setups are never translated or modified.
 - Plan all four mastery classes: Warrior, Ranged, Tank, and Support.
-- Adjust stats with buttons, sliders, or direct level entry.
+- Adjust each stat from level 0 to the current maximum of 64 with buttons, sliders, or direct level entry.
 - Calculate Guardian Point cost, remaining balance, deficit, and ETA.
+- Use the independent **Reset calculator** to total the Guardian Points available after a reset, with spending broken down by class.
 - Respect the shared mastery-cap rules while planning.
 - Find a minimum-cost legal route to a target setup, with purchases grouped by mastery gate and cumulative cost/ETA.
 - Save, name, rename, compare, reload, and delete up to 10 distribution presets.
@@ -65,6 +66,22 @@ Exact byte-for-byte reproducibility is not currently guaranteed because Electron
 4. Review the total cost and estimated time.
 5. Optionally save the distribution as a named preset.
 
+### Reset calculator
+
+Open **Reset calculator** to enter all 16 current levels and your **Unspent Guardian Points** directly. **Guardian Points after reset** shows the unspent balance plus the cumulative cost of those levels. **Points invested** gives the total already spent, with a breakdown for Warrior, Ranged, Tank and Support.
+
+You can fill the calculator manually or copy a distribution:
+
+- **Use saved account**, in the calculator, copies your saved current levels and current account Guardian Points.
+- **Use planner distribution**, in the calculator, copies the Planner's planned levels and current account Guardian Points. It uses the manual plan, not the target optimizer's recommendation.
+- **Calculate reset**, in the **Shared setup** preview, copies the linked levels into the calculator and opens its tab. It keeps the calculator's existing **Unspent Guardian Points**.
+
+The calculator keeps its own levels and points when you change tabs or reopen the app. Editing them leaves your saved account, plan and optimizer targets unchanged. You do not need to set any levels to zero to calculate a reset.
+
+For example, enter Warrior `17/3/0/0`, Ranged `0/20/0/0`, Tank `10/0/0/0` and Support `10/0/0/0` in ATK/HP/DEF/Skill Damage order. These levels contain **7,420,000 GP**. Adding **2,000,000 GP** unspent gives **9,420,000 GP** after reset.
+
+This calculation estimates the Guardian Point budget for a reset; it does not perform a reset in the game or include any diamond cost.
+
 ### Target optimizer
 
 1. Open **Target optimizer**.
@@ -81,12 +98,13 @@ Presets are distribution templates, not complete account backups. Loading one ne
 
 ## Data and privacy
 
-Levels, resources, plans, targets and presets are stored locally. Web, installed web app, and desktop storage may differ according to browser/profile; there is no cloud synchronization. Clearing browser site data can remove your saves. Private browsing or full storage can prevent saving; the interface reports **Not saved** instead of claiming success.
+Levels, resources, plans, targets, presets and the reset calculator's independent inputs are stored locally. Web, installed web app, and desktop storage may differ according to browser/profile; there is no cloud synchronization. Clearing browser site data can remove your saves. Private browsing or full storage can prevent saving; the interface reports **Not saved** instead of claiming success.
 
-- **Export backup** downloads a JSON file containing the account, resources, plan, targets and all presets. Keep it somewhere safe.
+- **Export backup** downloads a JSON file containing the account, resources, plan, targets, all presets and the reset calculator's inputs. Keep it somewhere safe.
 - **Import backup** validates that file and previews the replacement before confirmation. This is also how to transfer data between devices or web and desktop.
 - **Share setup** includes only the 16 target levels in the URL fragment, not your points, income or preset names. Opening it previews the setup; accepting changes targets only.
 - Old local saves migrate automatically. If saved data is malformed, automatic saving pauses to avoid overwriting it. Download the recovery file before importing a valid backup or starting again. The recovery file preserves raw data for diagnosis; it is not itself an importable backup.
+- Plans, targets and presets from earlier releases are limited to level 64 when loaded. Shared setup links containing levels above 64 are rejected. Saved real account levels above 64 are not silently changed: loading pauses with recovery data available so that the original values remain recoverable.
 - Deleting a preset or clearing all data requires confirmation.
 
 The app has no analytics, login, or game-account integration. Hosting providers still receive normal page/asset requests; do not put personal information in a shared link. The offline cache contains application files, not a cloud copy of your planner data.
@@ -143,7 +161,7 @@ No signing certificates are included. Publisher signing/notarization needs the m
 
 ## Upgrade-cost mathematics
 
-The cost curve combines linear growth inside each ten-level block with exponential growth between blocks.
+Each individual stat has a maximum level of **64**. The planner uses the observed costs through that level; it does not offer higher levels or project their prices. Shared mastery gates still apply to the sum of each class's four stats.
 
 ### Growth inside a block
 
@@ -162,17 +180,15 @@ C(53) = 4,000,000 × (1 + 0.05 × 3)
 
 ### Evolution of the block base
 
-| Current-level block | Starting cost B | Status         |
-| ------------------- | --------------: | -------------- |
-| 0–9                 |          80,000 | observed curve |
-| 10–19               |         160,000 | observed curve |
-| 20–29               |         320,000 | observed curve |
-| 30–39               |         640,000 | observed curve |
-| 40–49               |       1,600,000 | observed curve |
-| 50–59               |       4,000,000 | observed curve |
-| 60–69               |      10,000,000 | observed curve |
-| 70–79               |      25,000,000 | speculative    |
-| 80–89               |      62,500,000 | speculative    |
+| Current-level range | Starting cost B | Destination levels |
+| ------------------- | --------------: | ------------------ |
+| 0–9                 |          80,000 | 1–10               |
+| 10–19               |         160,000 | 11–20              |
+| 20–29               |         320,000 | 21–30              |
+| 30–39               |         640,000 | 31–40              |
+| 40–49               |       1,600,000 | 41–50              |
+| 50–59               |       4,000,000 | 51–60              |
+| 60–63               |      10,000,000 | 61–64              |
 
 Before level 40, the base doubles every ten levels:
 
@@ -188,41 +204,42 @@ C(L) = 1,600,000
      × (1 + 0.05 × (L mod 10))
 ```
 
-For example, the estimated 70→71 cost is:
+### Latest level costs
+
+The screenshot supplied for the level-64 update lists the cost of reaching each destination level, not the cost of upgrading from that level:
+
+| Destination level | Upgrade cost (GP) |
+| ----------------- | ----------------: |
+| 46                |         2,000,000 |
+| 47                |         2,080,000 |
+| 48                |         2,160,000 |
+| 49                |         2,240,000 |
+| 50                |         2,320,000 |
+| 51                |         4,000,000 |
+| 52                |         4,200,000 |
+| 53                |         4,400,000 |
+| 54                |         4,600,000 |
+| 55                |         4,800,000 |
+| 56                |         5,000,000 |
+| 57                |         5,200,000 |
+| 58                |         5,400,000 |
+| 59                |         5,600,000 |
+| 60                |         5,800,000 |
+| 61                |        10,000,000 |
+| 62                |        10,500,000 |
+| 63                |        11,000,000 |
+| 64                |        11,500,000 |
+
+### Guardian Points after reset
+
+For a stat currently at level `N`, the spent amount is the sum of every upgrade from 0→1 through `N−1`→`N`. Sum that amount for all four stats in all four classes, then add the current unspent balance:
 
 ```text
-1,600,000 × 2.5^3 × (1 + 0.05 × 0)
-= 25,000,000 GP
+Reset total = Current Guardian Points
+            + Σ (cumulative cost from 0 to each of the 16 current levels)
 ```
 
-### Speculative levels 71–90
-
-Costs above level 70 are estimates that assume the ×2.5 block scaling continues unchanged. They are not confirmed game data.
-
-| Upgrade | Estimated cost |
-| ------- | -------------: |
-| 70→71   |     25,000,000 |
-| 71→72   |     26,250,000 |
-| 72→73   |     27,500,000 |
-| 73→74   |     28,750,000 |
-| 74→75   |     30,000,000 |
-| 75→76   |     31,250,000 |
-| 76→77   |     32,500,000 |
-| 77→78   |     33,750,000 |
-| 78→79   |     35,000,000 |
-| 79→80   |     36,250,000 |
-| 80→81   |     62,500,000 |
-| 81→82   |     65,625,000 |
-| 82→83   |     68,750,000 |
-| 83→84   |     71,875,000 |
-| 84→85   |     75,000,000 |
-| 85→86   |     78,125,000 |
-| 86→87   |     81,250,000 |
-| 87→88   |     84,375,000 |
-| 88→89   |     87,500,000 |
-| 89→90   |     90,625,000 |
-
-The important distinction is that the local progression is linear (`+5% of B` per level), while the global block progression is exponential (`B × 2.5` every ten levels). The application labels every projected cost above level 70 as speculative.
+For example, if all 16 stats are at level 1, they contain `16 × 80,000 = 1,280,000 GP`. With a current balance of `500,000 GP`, the reset total is `1,780,000 GP`.
 
 ## Contributing
 

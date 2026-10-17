@@ -61,13 +61,6 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "Optimizador de objetivos",
     "目标优化器",
   ],
-  "Estimated levels:": ["推定レベル：", "Niveles estimados:", "推测等级："],
-  "costs for levels 71–90 are speculative projections assuming the observed ×2.5 scaling continues after level 70.":
-    [
-      "レベル71～90のコストは、レベル70以降も確認済みの2.5倍の増加率が続くと仮定した推定値です。",
-      "los costes de los niveles 71–90 son proyecciones especulativas que suponen que el factor ×2,5 observado continúa después del nivel 70.",
-      "71至90级的费用为推测值，假设70级后仍遵循已观察到的2.5倍增长规律。",
-    ],
   "Your resources": ["所持リソース", "Tus recursos", "持有资源"],
   "Your target budget": [
     "目標達成の予算",
@@ -97,6 +90,71 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "Puntos de guardián actuales",
     "当前守护者点数",
   ],
+  "Guardian Points after reset": [
+    "リセット後のガーディアンポイント",
+    "Puntos de guardián tras el reinicio",
+    "重置后的守护者点数",
+  ],
+  "Reset calculator": [
+    "リセット計算機",
+    "Calculadora de reinicio",
+    "重置计算器",
+  ],
+  "Calculate your points after a reset": [
+    "リセット後のポイントを計算",
+    "Calcula tus puntos tras un reinicio",
+    "计算重置后的点数",
+  ],
+  "Enter your current distribution and unspent Guardian Points to see your total after a reset.":
+    [
+      "現在のレベル配分と未使用のガーディアンポイントを入力すると、リセット後の合計を確認できます。",
+      "Introduce tu distribución actual y tus puntos de guardián sin gastar para ver el total tras un reinicio.",
+      "输入当前等级分配和未使用的守护者点数，即可查看重置后的总点数。",
+    ],
+  "Unspent Guardian Points": [
+    "未使用のガーディアンポイント",
+    "Puntos de guardián sin gastar",
+    "未使用的守护者点数",
+  ],
+  "Points invested": ["使用済みポイント", "Puntos invertidos", "已投入点数"],
+  "Current distribution": [
+    "現在のレベル配分",
+    "Distribución actual",
+    "当前等级分配",
+  ],
+  "Use saved account": [
+    "保存済みのアカウントを使用",
+    "Usar cuenta guardada",
+    "使用已保存的账号",
+  ],
+  "Use planner distribution": [
+    "プランナーの配分を使用",
+    "Usar distribución del planificador",
+    "使用规划器分配",
+  ],
+  "Calculate reset": ["リセットを計算", "Calcular reinicio", "计算重置"],
+  "This calculator does not change your saved account, plan or optimizer targets.":
+    [
+      "この計算機は、保存済みのアカウント、計画、最適化の目標を変更しません。",
+      "Esta calculadora no modifica tu cuenta guardada, tu plan ni los objetivos del optimizador.",
+      "此计算器不会更改已保存的账号、计划或优化器目标。",
+    ],
+  "Invested in {class}": [
+    "{class}に使用したポイント",
+    "Invertidos en {class}",
+    "{class}已投入点数",
+  ],
+  "{class} {stat} reset level": [
+    "{class}の{stat}のリセット計算レベル",
+    "Nivel de {stat} de {class} para el cálculo de reinicio",
+    "{class}{stat}重置计算等级",
+  ],
+  "Saved plans, targets and presets above level 64 were reduced to the current limit. Mastery prerequisites were added where needed; your current account levels and resources were preserved.":
+    [
+      "保存済みの計画・目標・プリセットで64を超えるレベルを現在の上限に引き下げました。必要な熟練度の前提条件を追加し、現在のアカウントのレベルとリソースは維持しました。",
+      "Los niveles superiores a 64 en planes, objetivos y configuraciones guardados se redujeron al límite actual. Se añadieron los requisitos de maestría necesarios; se conservaron los niveles y recursos actuales de tu cuenta.",
+      "已将保存的计划、目标和预设中超过64的等级降至当前上限，并补齐必要的精通前置等级；当前账号等级和资源保持不变。",
+    ],
   "Guardian Points / hour": [
     "1時間あたりのガーディアンポイント",
     "Puntos de guardián por hora",
@@ -279,11 +337,6 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "已达到最高等级",
   ],
   Next: ["次の強化", "Siguiente", "下一级"],
-  "Estimated next": [
-    "次の強化の推定コスト",
-    "Estimación siguiente",
-    "下一级预估费用",
-  ],
   "{class} {stat} planned level": [
     "{class} {stat} 計画レベル",
     "Nivel previsto de {stat} de {class}",

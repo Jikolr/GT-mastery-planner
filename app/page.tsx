@@ -13,7 +13,6 @@ import {
   editPlan,
   hoursUntilAffordable,
   isLegalDistribution,
-  isSpeculativeCost,
   optimizeTarget,
   routeStages,
   targetDate,
@@ -39,6 +38,7 @@ import {
 import { usePlanner } from "./usePlanner";
 import { Modal } from "./components/Modal";
 import { LevelInput } from "./components/LevelInput";
+import { ResetCalculator } from "./components/ResetCalculator";
 import { OfflineStatus } from "./pwa";
 import { useI18n, korean, languages, isLanguage, type Message } from "./i18n";
 import warriorIcon from "../Assets/warrior.svg";
@@ -119,7 +119,7 @@ export default function Home() {
   const { data, setData, loaded, blocked, setBlocked, saveError, saveStatus } =
     usePlanner();
   const { guardianPoints, income, initial, planned, targets, presets } = data;
-  const [tab, setTab] = useState<"planner" | "optimizer">("planner");
+  const [tab, setTab] = useState<"planner" | "optimizer" | "reset">("planner");
   const [notice, setNotice] = useState<Message | null>(
     loaded.blocked ? null : (loaded.warning ?? null),
   );
@@ -250,6 +250,7 @@ export default function Home() {
     const fresh = newSnapshot();
     fresh.guardianPoints = 0;
     fresh.income = 0;
+    fresh.reset.guardianPoints = 0;
     setData(fresh);
     setBlocked(false);
     setClearing(false);
@@ -325,207 +326,216 @@ export default function Home() {
         >
           {t("Target optimizer")}{" "}
         </button>
+        <button
+          aria-current={tab === "reset" ? "page" : undefined}
+          className={tab === "reset" ? "active" : ""}
+          onClick={() => setTab("reset")}
+        >
+          {t("Reset calculator")}
+        </button>
       </nav>
-      <div className="speculative-note" role="note">
-        <strong>{t("Estimated levels:")}</strong>{" "}
-        {t(
-          "costs for levels 71–90 are speculative projections assuming the observed ×2.5 scaling continues after level 70.",
-        )}{" "}
-      </div>
-      <section className={`summary-card ${remaining < 0 ? "is-negative" : ""}`}>
-        <div className="summary-heading">
-          <div>
-            <p className="eyebrow">{t("Your resources")}</p>
-            <h2>
-              {tab === "optimizer"
-                ? t("Your target budget")
-                : t("Plan without limits")}
-            </h2>
-          </div>
-          <div className="actions">
-            <button
-              className="preset-save-button"
-              disabled={presets.length >= PRESET_LIMIT || !!optimization.error}
-              onClick={() => {
-                setRenaming(null);
-                setPresetName("");
-              }}
-            >
-              {t(tab === "optimizer" ? "Save result" : "Save preset")} (
-              {presets.length}/10)
-            </button>
-            {tab === "planner" && (
-              <>
-                <button
-                  className="ghost-button"
-                  onClick={() => {
-                    patch({ planned: clone(initial) });
-                    setNotice("Planned upgrades reset to your current levels.");
-                  }}
-                >
-                  {t("Reset plan")}{" "}
-                </button>
-                <button
-                  className="ghost-button"
-                  onClick={() => {
-                    patch({ targets: clone(planned) });
-                    setTab("optimizer");
-                  }}
-                >
-                  {t("Optimize this plan")}{" "}
-                </button>
-              </>
-            )}
-            <button
-              className="primary-button"
-              onClick={() => {
-                setDraft(clone(initial));
-                setEditorError("");
-              }}
-            >
-              {t("Edit current levels")}{" "}
-            </button>
-          </div>
-        </div>
-        <div className="summary-grid">
-          <label>
-            <span>{t("Current Guardian Points")}</span>
-            <input
-              inputMode="numeric"
-              value={guardianPoints}
-              onChange={(e) =>
-                patch({
-                  guardianPoints: Math.min(
-                    Number.MAX_SAFE_INTEGER,
-                    Number(e.target.value.replace(/\D/g, "")) || 0,
-                  ),
-                })
-              }
-            />
-          </label>
-          <label>
-            <span>{t("Guardian Points / hour")}</span>
-            <input
-              inputMode="numeric"
-              value={income}
-              onChange={(e) =>
-                patch({
-                  income: Math.min(
-                    Number.MAX_SAFE_INTEGER,
-                    Number(e.target.value.replace(/\D/g, "")) || 0,
-                  ),
-                })
-              }
-            />
-          </label>
-          <div className="metric">
-            <span>
-              {tab === "optimizer"
-                ? t("Target route cost")
-                : t("Planned upgrade cost")}
-            </span>
-            <strong title={money(cost)}>{money(cost)}</strong>
-          </div>
-          <div className="metric highlight">
-            <span>{t("Remaining Guardian Points")}</span>
-            <strong title={money(remaining)}>{money(remaining)}</strong>
-          </div>
-        </div>
-        {deficit > 0 && (
-          <div className="deficit-strip">
+      {tab !== "reset" && (
+        <section
+          className={`summary-card ${remaining < 0 ? "is-negative" : ""}`}
+        >
+          <div className="summary-heading">
             <div>
-              <span>{t("Missing Guardian Points")}</span>
-              <strong>{money(deficit)}</strong>
+              <p className="eyebrow">{t("Your resources")}</p>
+              <h2>
+                {tab === "optimizer"
+                  ? t("Your target budget")
+                  : t("Plan without limits")}
+              </h2>
             </div>
-            <div>
-              <span>{t("Time required")}</span>
-              <strong>{duration(cost, guardianPoints, income)}</strong>
-            </div>
-            <div>
-              <span>{t("Enough points on")}</span>
-              <strong>
-                {eta
-                  ? eta.toLocaleString(locale, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })
-                  : income > 0
-                    ? t("Beyond calendar range")
-                    : t("Set an income above zero")}
-              </strong>
-            </div>
-          </div>
-        )}
-        <div className="data-toolbar">
-          <button
-            onClick={() =>
-              download(
-                serializeBackup(data),
-                `guardian-mastery-backup-${new Date().toISOString().slice(0, 10)}.json`,
-              )
-            }
-          >
-            {t("Export backup")}{" "}
-          </button>
-          <button onClick={() => fileInput.current?.click()}>
-            {t("Import backup")}{" "}
-          </button>
-          <button
-            onClick={() =>
-              setShareLink(
-                `https://jikolr.github.io/GT-mastery-planner/${setupHash(tab === "optimizer" ? targets : planned)}`,
-              )
-            }
-          >
-            {t("Share setup")}{" "}
-          </button>
-          <span>{t("Stored on this device · no account required")}</span>
-          <input
-            hidden
-            ref={fileInput}
-            type="file"
-            accept=".json,application/json"
-            aria-label={t("Import planner backup")}
-            onChange={(e) => void importFile(e.target.files?.[0])}
-          />
-        </div>
-        {presets.length > 0 && (
-          <div className="preset-shelf">
-            <div>
-              <span>{t("Saved presets")}</span>
-              <small>{presets.length}/10</small>
-            </div>
-            <div className="preset-list">
-              {presets.map((p) => (
-                <div className="preset-chip" key={p.id}>
+            <div className="actions">
+              <button
+                className="preset-save-button"
+                disabled={
+                  presets.length >= PRESET_LIMIT || !!optimization.error
+                }
+                onClick={() => {
+                  setRenaming(null);
+                  setPresetName("");
+                }}
+              >
+                {t(tab === "optimizer" ? "Save result" : "Save preset")} (
+                {presets.length}/10)
+              </button>
+              {tab === "planner" && (
+                <>
                   <button
-                    onClick={() => loadPreset(p)}
-                    title={t("Load {name}", { name: p.name })}
-                  >
-                    {p.name}
-                  </button>
-                  <button
+                    className="ghost-button"
                     onClick={() => {
-                      setRenaming(p.id);
-                      setPresetName(p.name);
+                      patch({ planned: clone(initial) });
+                      setNotice(
+                        "Planned upgrades reset to your current levels.",
+                      );
                     }}
-                    aria-label={t("Rename {name}", { name: p.name })}
                   >
-                    ✎
+                    {t("Reset plan")}{" "}
                   </button>
                   <button
-                    className="preset-delete"
-                    onClick={() => setDeleting(p)}
-                    aria-label={t("Delete {name}", { name: p.name })}
+                    className="ghost-button"
+                    onClick={() => {
+                      patch({ targets: clone(planned) });
+                      setTab("optimizer");
+                    }}
                   >
-                    ×
+                    {t("Optimize this plan")}{" "}
                   </button>
-                </div>
-              ))}
+                </>
+              )}
+              <button
+                className="primary-button"
+                onClick={() => {
+                  setDraft(clone(initial));
+                  setEditorError("");
+                }}
+              >
+                {t("Edit current levels")}{" "}
+              </button>
             </div>
           </div>
-        )}
-      </section>
+          <div className="summary-grid">
+            <label>
+              <span>{t("Current Guardian Points")}</span>
+              <input
+                inputMode="numeric"
+                value={guardianPoints}
+                onChange={(e) =>
+                  patch({
+                    guardianPoints: Math.min(
+                      Number.MAX_SAFE_INTEGER,
+                      Number(e.target.value.replace(/\D/g, "")) || 0,
+                    ),
+                  })
+                }
+              />
+            </label>
+            <label>
+              <span>{t("Guardian Points / hour")}</span>
+              <input
+                inputMode="numeric"
+                value={income}
+                onChange={(e) =>
+                  patch({
+                    income: Math.min(
+                      Number.MAX_SAFE_INTEGER,
+                      Number(e.target.value.replace(/\D/g, "")) || 0,
+                    ),
+                  })
+                }
+              />
+            </label>
+            <div className="metric">
+              <span>
+                {tab === "optimizer"
+                  ? t("Target route cost")
+                  : t("Planned upgrade cost")}
+              </span>
+              <strong title={money(cost)}>{money(cost)}</strong>
+            </div>
+            <div className="metric highlight">
+              <span>{t("Remaining Guardian Points")}</span>
+              <strong title={money(remaining)}>{money(remaining)}</strong>
+            </div>
+          </div>
+          {deficit > 0 && (
+            <div className="deficit-strip">
+              <div>
+                <span>{t("Missing Guardian Points")}</span>
+                <strong>{money(deficit)}</strong>
+              </div>
+              <div>
+                <span>{t("Time required")}</span>
+                <strong>{duration(cost, guardianPoints, income)}</strong>
+              </div>
+              <div>
+                <span>{t("Enough points on")}</span>
+                <strong>
+                  {eta
+                    ? eta.toLocaleString(locale, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })
+                    : income > 0
+                      ? t("Beyond calendar range")
+                      : t("Set an income above zero")}
+                </strong>
+              </div>
+            </div>
+          )}
+          <div className="data-toolbar">
+            <button
+              onClick={() =>
+                download(
+                  serializeBackup(data),
+                  `guardian-mastery-backup-${new Date().toISOString().slice(0, 10)}.json`,
+                )
+              }
+            >
+              {t("Export backup")}{" "}
+            </button>
+            <button onClick={() => fileInput.current?.click()}>
+              {t("Import backup")}{" "}
+            </button>
+            <button
+              onClick={() =>
+                setShareLink(
+                  `https://jikolr.github.io/GT-mastery-planner/${setupHash(tab === "optimizer" ? targets : planned)}`,
+                )
+              }
+            >
+              {t("Share setup")}{" "}
+            </button>
+            <span>{t("Stored on this device · no account required")}</span>
+            <input
+              hidden
+              ref={fileInput}
+              type="file"
+              accept=".json,application/json"
+              aria-label={t("Import planner backup")}
+              onChange={(e) => void importFile(e.target.files?.[0])}
+            />
+          </div>
+          {presets.length > 0 && (
+            <div className="preset-shelf">
+              <div>
+                <span>{t("Saved presets")}</span>
+                <small>{presets.length}/10</small>
+              </div>
+              <div className="preset-list">
+                {presets.map((p) => (
+                  <div className="preset-chip" key={p.id}>
+                    <button
+                      onClick={() => loadPreset(p)}
+                      title={t("Load {name}", { name: p.name })}
+                    >
+                      {p.name}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setRenaming(p.id);
+                        setPresetName(p.name);
+                      }}
+                      aria-label={t("Rename {name}", { name: p.name })}
+                    >
+                      ✎
+                    </button>
+                    <button
+                      className="preset-delete"
+                      onClick={() => setDeleting(p)}
+                      aria-label={t("Delete {name}", { name: p.name })}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
       {notice && (
         <div className="notice" role="status">
           <p>{t(notice)}</p>
@@ -537,7 +547,18 @@ export default function Home() {
           </button>
         </div>
       )}
-      {tab === "optimizer" ? (
+      {tab === "reset" ? (
+        <ResetCalculator
+          setup={data.reset}
+          onChange={(reset) => patch({ reset })}
+          onUseAccount={() =>
+            patch({ reset: { levels: clone(initial), guardianPoints } })
+          }
+          onUsePlan={() =>
+            patch({ reset: { levels: clone(planned), guardianPoints } })
+          }
+        />
+      ) : tab === "optimizer" ? (
         <section className="optimizer-panel">
           <div className="mastery-intro">
             <div>
@@ -716,12 +737,7 @@ export default function Home() {
                                 )}{" "}
                                 {step.destination - 1} → {step.destination}
                               </span>
-                              <strong>
-                                {isSpeculativeCost(step.destination)
-                                  ? "≈ "
-                                  : ""}
-                                {money(step.cost)}
-                              </strong>
+                              <strong>{money(step.cost)}</strong>
                             </li>
                           ))}
                         </ol>
@@ -805,7 +821,7 @@ export default function Home() {
                           <small>
                             {nextCost === null
                               ? t("Maximum level reached")
-                              : `${t(isSpeculativeCost(level + 1) ? "Estimated next" : "Next")}: ${money(nextCost)}`}
+                              : `${t("Next")}: ${money(nextCost)}`}
                           </small>
                           <input
                             key={`${c}-${s}-${sliderMax}`}
@@ -1140,6 +1156,16 @@ export default function Home() {
           <div className="modal-actions">
             <button className="ghost-button" onClick={closeShared}>
               {t("Cancel")}{" "}
+            </button>
+            <button
+              className="ghost-button"
+              onClick={() => {
+                patch({ reset: { ...data.reset, levels: clone(shared) } });
+                setTab("reset");
+                closeShared();
+              }}
+            >
+              {t("Calculate reset")}
             </button>
             <button
               className="primary-button"

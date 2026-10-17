@@ -47,6 +47,7 @@ describe("English / Korean localization", () => {
       "app/page.tsx",
       "app/pwa.tsx",
       "app/components/Modal.tsx",
+      "app/components/ResetCalculator.tsx",
     ]) {
       const source = ts.createSourceFile(
         path,

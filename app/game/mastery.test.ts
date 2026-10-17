@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  CLASS_IDS,
+  MAX_LEVEL,
+  STAT_IDS,
   bonusPercent,
   canUpgrade,
   classTotal,
   cumulativeStatCost,
   deficitFor,
   emptyLevels,
+  guardianPointsAfterReset,
   hoursUntilAffordable,
   isMilestone,
   remainingPoints,
+  sanitizeLevel,
   targetDate,
   totalPlannedCost,
   unlockedCap,
@@ -18,10 +23,11 @@ import {
 
 function totals(w: number, r: number, t: number, s: number): Levels {
   const x = emptyLevels();
-  x.warrior.atk = w;
-  x.ranged.atk = r;
-  x.tank.atk = t;
-  x.support.atk = s;
+  for (const [index, c] of CLASS_IDS.entries()) {
+    const total = [w, r, t, s][index];
+    x[c].atk = Math.min(total, 50);
+    x[c].hp = Math.max(0, total - 50);
+  }
   return x;
 }
 
@@ -59,12 +65,41 @@ describe("mastery engine", () => {
     x.warrior.atk = 30;
     expect(canUpgrade(x, "warrior", "atk").allowed).toBe(false);
   });
-  it("supports the projected curve through level 90", () => {
-    expect(upgradeCost(70)).toBe(14500000);
-    expect(upgradeCost(71)).toBe(25000000);
-    expect(upgradeCost(81)).toBe(62500000);
-    expect(upgradeCost(90)).toBe(90625000);
-    expect(upgradeCost(91)).toBeNull();
+  it.each([
+    [46, 2000000],
+    [47, 2080000],
+    [48, 2160000],
+    [49, 2240000],
+    [50, 2320000],
+    [51, 4000000],
+    [52, 4200000],
+    [53, 4400000],
+    [54, 4600000],
+    [55, 4800000],
+    [56, 5000000],
+    [57, 5200000],
+    [58, 5400000],
+    [59, 5600000],
+    [60, 5800000],
+    [61, 10000000],
+    [62, 10500000],
+    [63, 11000000],
+    [64, 11500000],
+  ])("matches the observed cost for level %i", (level, cost) => {
+    expect(upgradeCost(level)).toBe(cost);
+  });
+  it("caps individual levels at 64", () => {
+    expect(MAX_LEVEL).toBe(64);
+    expect(upgradeCost(65)).toBeNull();
+    expect(upgradeCost(90)).toBeNull();
+    expect(sanitizeLevel(65)).toBe(64);
+    const x = emptyLevels();
+    for (const c of CLASS_IDS) x[c].atk = 64;
+    expect(canUpgrade(x, "warrior", "atk")).toEqual({
+      allowed: false,
+      reason: "cost-unavailable",
+    });
+    expect(canUpgrade(x, "warrior", "hp")).toMatchObject({ allowed: true });
   });
   it.each([
     [11, true],
@@ -100,6 +135,39 @@ describe("mastery engine", () => {
     i.warrior.atk = p.warrior.atk = 40;
     p.warrior.atk = 42;
     expect(totalPlannedCost(i, p)).toBe(3280000);
+  });
+  it("keeps unspent points unchanged when there are no levels to refund", () => {
+    expect(guardianPointsAfterReset(emptyLevels(), 4321)).toBe(4321);
+    expect(guardianPointsAfterReset(emptyLevels(), 0)).toBe(0);
+  });
+  it("refunds cumulative spending in all 16 fields without changing levels", () => {
+    const current = emptyLevels();
+    let level = 1;
+    for (const c of CLASS_IDS)
+      for (const s of STAT_IDS) current[c][s] = level++;
+    const original = structuredClone(current);
+    // Levels 1–10 refund 5,060,000 combined; levels 11–16 refund 9,520,000.
+    expect(guardianPointsAfterReset(current, 420000)).toBe(15000000);
+    expect(current).toEqual(original);
+  });
+  it("includes every purchase through level 64 in a full reset", () => {
+    const current = emptyLevels();
+    for (const c of CLASS_IDS) for (const s of STAT_IDS) current[c][s] = 64;
+    expect(cumulativeStatCost(0, 64)).toBe(126300000);
+    expect(guardianPointsAfterReset(current, 1200000)).toBe(2022000000);
+  });
+  it("refunds the shared example's purchased levels plus its unspent balance", () => {
+    const levels = emptyLevels();
+    levels.warrior.atk = 17;
+    levels.warrior.hp = 3;
+    levels.ranged.hp = 20;
+    levels.tank.atk = 10;
+    levels.support.atk = 10;
+    expect(cumulativeStatCost(0, 17) + cumulativeStatCost(0, 3)).toBe(2520000);
+    expect(cumulativeStatCost(0, 20)).toBe(2940000);
+    expect(cumulativeStatCost(0, 10)).toBe(980000);
+    expect(totalPlannedCost(emptyLevels(), levels)).toBe(7420000);
+    expect(guardianPointsAfterReset(levels, 2000000)).toBe(9420000);
   });
   it("allows negative GP and calculates deficit", () => {
     const remaining = remainingPoints(1000000, 1600000);

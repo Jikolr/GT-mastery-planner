@@ -1,10 +1,11 @@
 import { useRef, useState, type KeyboardEvent } from "react";
+import { MAX_LEVEL } from "../game/mastery";
 
 /** Keep partially typed numbers intact; validate only on blur/Enter. */
 export function LevelInput({
   value,
   min = 0,
-  max = 90,
+  max = MAX_LEVEL,
   label,
   onCommit,
 }: {
