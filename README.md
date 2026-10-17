@@ -6,7 +6,7 @@ A web and desktop application for planning Guardian Tales mastery upgrades witho
 
 ### [Open Guardian Tales Mastery Planner in your browser](https://jikolr.github.io/GT-mastery-planner/)
 
-The web version requires no download or account. Plans and presets are saved on your device, not sent to a server. Once **Ready for offline use** appears, you can reopen the planner without a connection. Your browser's **Install app / Add to Home Screen** option can add it to your applications. Installation support depends on the browser; the regular website remains available.
+The web version requires no download or account. Plans and presets are saved on your device, not sent to a server. After the app finishes caching during an online visit, you can reopen the planner without a connection. Your browser's **Install app / Add to Home Screen** option can add it to your applications. Installation support depends on the browser; the regular website remains available.
 
 When **Update application** appears, click it to load the cached new version. The header and footer show the version, and the footer includes the source revision so you can identify exactly which build you are using.
 
@@ -20,7 +20,7 @@ When **Update application** appears, click it to load the cached new version. Th
 - Calculate Guardian Point cost, remaining balance, deficit, and ETA.
 - Use the independent **Reset calculator** to total the Guardian Points available after a reset, with spending broken down by class.
 - Respect the shared mastery-cap rules while planning.
-- Find a minimum-cost legal route to a target setup, with purchases grouped by mastery gate and cumulative cost/ETA.
+- Find a minimum-cost legal distribution for a target setup, including the necessary mastery prerequisites, total cost and ETA.
 - Save, name, rename, compare, reload, and delete up to 10 distribution presets.
 - Export/import complete JSON backups and share target levels through a link.
 - Preserve optimizer targets when switching views; save the recommendation directly as a preset.
@@ -68,7 +68,7 @@ Exact byte-for-byte reproducibility is not currently guaranteed because Electron
 
 ### Reset calculator
 
-Open **Reset calculator** to enter all 16 current levels and your **Unspent Guardian Points** directly. **Guardian Points after reset** shows the unspent balance plus the cumulative cost of those levels. **Points invested** gives the total already spent, with a breakdown for Warrior, Ranged, Tank and Support.
+Open **Reset calculator** to enter all 16 current levels and your **Unspent Guardian Points** directly. Adjust each stat from **0 to 64** with `+`, `−`, a slider or direct entry. The calculator accepts each entered distribution without imposing the planner's ten-level mastery gates. **Guardian Points after reset** shows the unspent balance plus the cumulative cost of those levels. **Points invested** gives the total already spent, with a breakdown for Warrior, Ranged, Tank and Support.
 
 You can fill the calculator manually or copy a distribution:
 
@@ -92,7 +92,7 @@ This calculation estimates the Guardian Point budget for a reset; it does not pe
 
 The optimizer keeps your entered targets when you change tabs or reopen the app. **Optimize this plan** explicitly copies the planner values into the target editor. A target below your real level never downgrades an already purchased stat.
 
-Expand **Your upgrade route** to see individual purchases, grouped by the cap in effect before each purchase. **Target** marks a requested upgrade; **Unlock** marks an extra prerequisite. The stage header shows its cost and the time needed to afford all purchases through that stage. Compare against a saved preset using the same account and income. **Save result** stores the recommended distribution; **Save preset** on the Planner stores the manual plan.
+Compare the recommended distribution against a saved preset using the same account and income. **Save result** stores the recommended distribution; **Save preset** on the Planner stores the manual plan.
 
 Presets are distribution templates, not complete account backups. Loading one never lowers real levels; it recalculates any missing prerequisites for your current account. A manual reduction that would invalidate another class's gate is refused with an explanation. Reduce the dependent class first, or reset the plan.
 
@@ -161,7 +161,7 @@ No signing certificates are included. Publisher signing/notarization needs the m
 
 ## Upgrade-cost mathematics
 
-Each individual stat has a maximum level of **64**. The planner uses the observed costs through that level; it does not offer higher levels or project their prices. Shared mastery gates still apply to the sum of each class's four stats.
+Each individual stat has a maximum level of **64**. Class mastery is the sum of the class's four stat levels, so a class total of **92**, for example, is valid within the shared mastery gates. The planner uses the observed costs through stat level 64. Shared mastery gates still apply when planning upgrades.
 
 ### Growth inside a block
 

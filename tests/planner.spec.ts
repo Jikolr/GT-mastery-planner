@@ -241,9 +241,16 @@ test("mobile fits the viewport; artwork, Warrior color and text-only sharing met
 
 test("web app reloads offline after caching", async ({ page, context }) => {
   await page.goto("/");
-  await expect(page.getByText(/Ready for offline use/)).toBeVisible({
-    timeout: 20000,
+  const controlled = await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    return Boolean(navigator.serviceWorker.controller);
   });
+  if (!controlled) await page.reload();
+  await expect
+    .poll(() =>
+      page.evaluate(() => Boolean(navigator.serviceWorker.controller)),
+    )
+    .toBe(true);
   await context.setOffline(true);
   await page.reload();
   await expect(
@@ -252,7 +259,65 @@ test("web app reloads offline after caching", async ({ page, context }) => {
   await expect(
     page.getByRole("button", { name: "Target optimizer", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(/Ready for offline use/)).toBeVisible();
+  await expect(page.getByText(/Ready for offline use/)).toHaveCount(0);
+});
+
+test("class totals can exceed the per-stat limit and the interface omits removed notices and routes", async ({
+  page,
+}) => {
+  const saved = newSnapshot();
+  for (const c of CLASS_IDS) saved.initial[c].atk = saved.planned[c].atk = 64;
+  await page.addInitScript(
+    ({ key, data }) => localStorage.setItem(key, JSON.stringify(data)),
+    { key: STORAGE_KEY, data: saved },
+  );
+  await page.goto("/");
+  const intro = page.locator(".mastery-intro");
+  await expect(intro).toContainText("Maximum stat level: 64");
+  await expect(intro).toContainText(
+    "Class mastery is the sum of its four stats. Shared mastery gates still apply.",
+  );
+  for (const c of CLASS_IDS) {
+    const header = page.locator(`.class-${c} .class-header p`);
+    await expect(header).toHaveText("Class Mastery 64");
+    await expect(header).not.toContainText("/");
+  }
+  const hp = page.getByRole("spinbutton", {
+    name: "Set Warrior HP Increase level",
+    exact: true,
+  });
+  await hp.fill("1");
+  await hp.press("Tab");
+  await expect(hp).toHaveValue("1");
+  await expect(page.locator(".class-warrior .class-header p")).toHaveText(
+    "Class Mastery 65",
+  );
+  await expect(page.getByText("Saved locally", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText("Stored on this device · no account required", {
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(page.getByText(/Ready for offline use/)).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Target optimizer", exact: true })
+    .click();
+  const target = page.getByRole("spinbutton", {
+    name: "Warrior HP Increase target",
+    exact: true,
+  });
+  await target.fill("12");
+  await target.press("Tab");
+  await expect(
+    page.getByRole("heading", {
+      name: "Recommended distribution",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Your upgrade route", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator(".route-stage")).toHaveCount(0);
 });
 
 test("Escape cancels a level edit and Enter does not submit the account editor", async ({

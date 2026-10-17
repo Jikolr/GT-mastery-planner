@@ -4,6 +4,8 @@
 
 - Set the individual mastery-level maximum to 64, verified the latest destination-level costs, and removed speculative higher-level planning.
 - Added an independent Reset calculator tab with 16 editable levels, unspent Guardian Points, spending by class and the total after reset. Its inputs persist separately from the account, plan and optimizer targets; buttons can copy the saved account or Planner distribution. Shared setup previews can send linked levels to the calculator while keeping its unspent points.
+- Clarified that the level-64 maximum applies to each stat, while class mastery sums all four stats. Added buttons and sliders to the Reset calculator, with unrestricted entry from 0 to 64 per stat.
+- Removed the detailed upgrade-route view and routine saved/offline-ready notices while retaining save errors and update prompts.
 - Adapted older plans, targets and presets to the level-64 cap while preserving invalid real account levels through the existing recovery flow; shared setup links above the cap are rejected.
 - Added Japanese, Spanish and Simplified Chinese translations with a five-language selector, localized durations and persistent preference.
 - Added an English/Korean language switch with a persistent device-local preference.

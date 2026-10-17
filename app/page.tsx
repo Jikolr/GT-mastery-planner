@@ -14,7 +14,6 @@ import {
   hoursUntilAffordable,
   isLegalDistribution,
   optimizeTarget,
-  routeStages,
   targetDate,
   totalPlannedCost,
   unlockedCap,
@@ -38,20 +37,10 @@ import {
 import { usePlanner } from "./usePlanner";
 import { Modal } from "./components/Modal";
 import { LevelInput } from "./components/LevelInput";
+import { ClassIcon as Icon } from "./components/ClassIcon";
 import { ResetCalculator } from "./components/ResetCalculator";
 import { OfflineStatus } from "./pwa";
 import { useI18n, korean, languages, isLanguage, type Message } from "./i18n";
-import warriorIcon from "../Assets/warrior.svg";
-import rangedIcon from "../Assets/ranged.svg";
-import tankIcon from "../Assets/tank.svg";
-import supportIcon from "../Assets/support.svg";
-
-const ICONS = {
-  warrior: warriorIcon,
-  ranged: rangedIcon,
-  tank: tankIcon,
-  support: supportIcon,
-};
 const clone = (levels: Levels) => structuredClone(levels);
 function download(text: string, filename: string) {
   const url = URL.createObjectURL(
@@ -62,13 +51,6 @@ function download(text: string, filename: string) {
   a.download = filename;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-function Icon({ id }: { id: ClassId }) {
-  return (
-    <span className={`class-icon icon-${id}`} aria-hidden="true">
-      <img src={ICONS[id]} alt="" />
-    </span>
-  );
 }
 function Distribution({ levels }: { levels: Levels }) {
   const { t } = useI18n();
@@ -138,10 +120,6 @@ export default function Home() {
   const optimization = useMemo(
     () => optimizeTarget(initial, targets),
     [initial, targets],
-  );
-  const stages = useMemo(
-    () => routeStages(initial, optimization.steps),
-    [initial, optimization.steps],
   );
   const comparingPreset = presets.find((p) => p.id === comparison);
   const alternative = useMemo(
@@ -267,13 +245,12 @@ export default function Home() {
             {t("Mastery Planner")} <small>v{__APP_VERSION__}</small>
           </h1>
         </div>
-        <span
-          className={`save-state ${blocked || saveError ? "save-error" : ""}`}
-          role="status"
-        >
-          <i />
-          {t(saveStatus)}
-        </span>
+        {(blocked || saveError) && (
+          <span className="save-state save-error" role="status">
+            <i />
+            {t(saveStatus)}
+          </span>
+        )}
         <select
           className="ghost-button language-toggle"
           value={language}
@@ -488,7 +465,6 @@ export default function Home() {
             >
               {t("Share setup")}{" "}
             </button>
-            <span>{t("Stored on this device · no account required")}</span>
             <input
               hidden
               ref={fileInput}
@@ -675,77 +651,6 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              <section className="journey">
-                <h3>{t("Your upgrade route")}</h3>
-                <p className="muted">
-                  {t(
-                    "Follow the purchases in order. Times use cumulative cost, your current balance and a constant income; update your resources after collecting points.",
-                  )}{" "}
-                </p>
-                {stages.length === 0 ? (
-                  <p>
-                    {t("Your current account already meets these targets.")}
-                  </p>
-                ) : (
-                  stages.map((stage, i) => (
-                    <details
-                      key={stage.cap}
-                      className="route-stage"
-                      open={stages.length === 1 ? true : undefined}
-                    >
-                      <summary>
-                        <strong>
-                          {i + 1}. {t("Mastery cap {cap}", { cap: stage.cap })}
-                        </strong>
-                        <span>{money(stage.cost)}</span>
-                        <span>
-                          {duration(
-                            stage.cumulativeCost,
-                            guardianPoints,
-                            income,
-                          )}
-                        </span>
-                      </summary>
-                      <div className="stage-content">
-                        <p>
-                          {t(
-                            "{targets} target upgrades · {unlocks} prerequisite upgrades · Total spent: {cost}",
-                            {
-                              targets: stage.targetCount,
-                              unlocks: stage.unlockCount,
-                              cost: money(stage.cumulativeCost),
-                            },
-                          )}
-                          {stage.resultingCap > stage.cap &&
-                            ` · ${t("Unlocks cap {cap}", { cap: stage.resultingCap })}`}
-                        </p>
-                        <ol>
-                          {stage.steps.map((step, j) => (
-                            <li key={j}>
-                              <span className={`step-reason ${step.reason}`}>
-                                {step.reason === "target"
-                                  ? t("Target")
-                                  : t("Unlock")}
-                              </span>
-                              <span>
-                                {t(CLASS_NAMES[step.classId])} ·{" "}
-                                {t(
-                                  STAT_NAMES[step.statId].replace(
-                                    " Increase",
-                                    "",
-                                  ),
-                                )}{" "}
-                                {step.destination - 1} → {step.destination}
-                              </span>
-                              <strong>{money(step.cost)}</strong>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    </details>
-                  ))
-                )}
-              </section>
             </>
           )}
         </section>
@@ -757,9 +662,9 @@ export default function Home() {
               <h2>{t("Shape your next upgrades")}</h2>
             </div>
             <p>
-              {t("Shared unlock cap:")} <b>{cap}</b>
+              {t("Maximum stat level:")} <b>{MAX_LEVEL}</b>.{" "}
               {t(
-                ". All classes must reach each gate before any class can cross it.",
+                "Class mastery is the sum of its four stats. Shared mastery gates still apply.",
               )}{" "}
             </p>
           </section>
@@ -777,7 +682,7 @@ export default function Home() {
                     <div>
                       <h3>{t(CLASS_NAMES[c])}</h3>
                       <p>
-                        {t("Class Mastery")} <strong>{total}</strong> / {cap}
+                        {t("Class Mastery")} <strong>{total}</strong>
                       </p>
                     </div>
                     <span className="ready-pill">

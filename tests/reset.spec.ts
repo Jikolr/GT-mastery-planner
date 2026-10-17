@@ -50,6 +50,13 @@ test("a shared distribution shows the exact cumulative refund and balance by cla
     .getByLabel("Unspent Guardian Points", { exact: true })
     .fill("2000000");
   const calculator = page.locator(".reset-calculator");
+  await expect(calculator.locator(".reset-account-note")).toHaveCount(0);
+  await expect(
+    calculator.getByText(
+      "This calculator does not change your saved account, plan or optimizer targets.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
   await expect(calculator.locator(".reset-invested")).toContainText(
     "7,420,000 GP",
   );
@@ -80,6 +87,71 @@ test("a shared distribution shows the exact cumulative refund and balance by cla
   expect(saved.initial).toEqual(emptyLevels());
   expect(saved.planned).toEqual(emptyLevels());
   expect(saved.targets).toEqual(emptyLevels());
+});
+
+test("reset card buttons and sliders update totals freely across gates and stop at 0 and 64", async ({
+  page,
+}) => {
+  const saved = newSnapshot();
+  saved.reset.guardianPoints = 1000;
+  await seedAccount(page, saved);
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Reset calculator", exact: true })
+    .click();
+  const calculator = page.locator(".reset-calculator");
+  const card = calculator.getByRole("group", { name: "Warrior", exact: true });
+  const input = card.getByRole("spinbutton", {
+    name: "Warrior ATK Increase reset level",
+    exact: true,
+  });
+  const slider = card.getByRole("slider", {
+    name: "Warrior ATK Increase reset level",
+    exact: true,
+  });
+  const increase = card.getByRole("button", {
+    name: "Increase Warrior ATK Increase",
+    exact: true,
+  });
+  const decrease = card.getByRole("button", {
+    name: "Undo Warrior ATK Increase",
+    exact: true,
+  });
+  const total = calculator.locator(".reset-total output");
+  await expect(decrease).toBeDisabled();
+  await expect(slider).toHaveAttribute("min", "0");
+  await expect(slider).toHaveAttribute("max", "64");
+  await expect(total).toHaveText("1,000 GP");
+  await input.fill("10");
+  await input.press("Tab");
+  await expect(total).toHaveText("981,000 GP");
+  await increase.click();
+  await expect(input).toHaveValue("11");
+  await expect(slider).toHaveValue("11");
+  await expect(total).toHaveText("1,141,000 GP");
+  for (const name of ["Ranged", "Tank", "Support"])
+    await expect(
+      calculator.getByRole("spinbutton", {
+        name: `${name} ATK Increase reset level`,
+        exact: true,
+      }),
+    ).toHaveValue("0");
+  await slider.press("End");
+  await expect(input).toHaveValue("64");
+  await expect(increase).toBeDisabled();
+  await expect(total).toHaveText("126,301,000 GP");
+  await slider.press("ArrowLeft");
+  await expect(input).toHaveValue("63");
+  await expect(increase).toBeEnabled();
+  await expect(total).toHaveText("114,801,000 GP");
+  await decrease.click();
+  await expect(input).toHaveValue("62");
+  await expect(slider).toHaveValue("62");
+  await expect(total).toHaveText("103,801,000 GP");
+  await slider.press("Home");
+  await expect(input).toHaveValue("0");
+  await expect(decrease).toBeDisabled();
+  await expect(total).toHaveText("1,000 GP");
 });
 
 test("all 16 reset inputs accept independent distributions and persist without changing the account or targets", async ({

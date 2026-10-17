@@ -72,8 +72,6 @@ export const korean: Record<string, string> = {
   "Use saved account": "저장된 계정 불러오기",
   "Use planner distribution": "플래너 분배 불러오기",
   "Calculate reset": "초기화 포인트 계산",
-  "This calculator does not change your saved account, plan or optimizer targets.":
-    "이 계산기는 저장된 계정, 계획 또는 최적화 목표를 변경하지 않습니다.",
   "Invested in {class}": "{class}에 사용한 포인트",
   "{class} {stat} reset level": "{class} {stat} 초기화 계산 레벨",
   "Saved plans, targets and presets above level 64 were reduced to the current limit. Mastery prerequisites were added where needed; your current account levels and resources were preserved.":
@@ -92,7 +90,6 @@ export const korean: Record<string, string> = {
   "Export backup": "백업 내보내기",
   "Import backup": "백업 가져오기",
   "Share setup": "설정 공유",
-  "Stored on this device · no account required": "이 기기에 저장 · 계정 불필요",
   "Import planner backup": "플래너 백업 가져오기",
   "Saved presets": "저장된 프리셋",
   "Load {name}": "{name} 불러오기",
@@ -115,26 +112,16 @@ export const korean: Record<string, string> = {
     "선행 조건을 포함하면 이 목표보다 {cost} 더 필요합니다.",
   "{cost} less than this target, including prerequisites.":
     "선행 조건을 포함하면 이 목표보다 {cost} 적게 필요합니다.",
-  "Your upgrade route": "강화 경로",
-  "Follow the purchases in order. Times use cumulative cost, your current balance and a constant income; update your resources after collecting points.":
-    "표시된 순서대로 강화하세요. 예상 시간은 누적 비용, 현재 잔액 및 일정한 포인트 획득량을 기준으로 계산됩니다. 포인트를 수령한 뒤에는 보유 자원을 갱신하세요.",
-  "Your current account already meets these targets.":
-    "현재 계정이 이미 모든 목표를 충족합니다.",
-  "Mastery cap {cap}": "숙련도 상한 {cap}",
-  "{targets} target upgrades · {unlocks} prerequisite upgrades · Total spent: {cost}":
-    "목표 강화 {targets}회 · 선행 조건 강화 {unlocks}회 · 누적 비용: {cost}",
-  "Unlocks cap {cap}": "상한 {cap} 해제",
-  Target: "목표",
-  Unlock: "조건 해제",
   "Mastery tracks": "클래스별 숙련도",
   "Shape your next upgrades": "다음 강화 계획 세우기",
-  "Shared unlock cap:": "공통 숙련도 상한:",
-  ". All classes must reach each gate before any class can cross it.":
-    ". 모든 클래스가 해당 단계에 도달해야 다음 단계로 넘어갈 수 있습니다.",
+  "Maximum stat level:": "능력치 레벨 상한:",
+  "Class mastery is the sum of its four stats. Shared mastery gates still apply.":
+    "클래스 숙련도는 네 능력치 레벨의 합계입니다. 공통 숙련도 해제 조건은 계속 적용됩니다.",
   Locked: "잠김",
   Ready: "강화 가능",
   "{class} mastery": "{class} 숙련도",
   "Initial {level} · Bonus +{bonus}%": "현재 {level} · 추가 효과 +{bonus}%",
+  "Bonus +{bonus}%": "추가 효과 +{bonus}%",
   "Maximum level reached": "최대 레벨 도달",
   Next: "다음 강화",
   "{class} {stat} planned level": "{class} {stat} 계획 레벨",
@@ -202,7 +189,6 @@ export const korean: Record<string, string> = {
   "Backup restored.": "백업을 복원했습니다.",
   "Setup link copied.": "설정 링크를 복사했습니다.",
   "Select the link and copy it manually.": "링크를 선택한 뒤 직접 복사하세요.",
-  "Saved locally": "이 기기에 저장됨",
   "Saving paused": "저장 일시 중지",
   "Not saved": "저장되지 않음",
   "Saving…": "저장 중…",
@@ -245,8 +231,6 @@ export const korean: Record<string, string> = {
   "Update application": "앱 업데이트",
   "Offline caching is unavailable in this browser. You can keep using the planner online.":
     "이 브라우저에서는 오프라인 캐시를 사용할 수 없습니다. 온라인에서는 계속 이용할 수 있습니다.",
-  "Ready for offline use · use your browser’s Install app / Add to Home Screen option to keep it handy.":
-    "오프라인 사용 준비 완료 · 브라우저의 ‘앱 설치’ 또는 ‘홈 화면에 추가’ 기능을 이용하세요.",
   "Language preference could not be saved on this device.":
     "이 기기에 언어 설정을 저장할 수 없습니다.",
 };

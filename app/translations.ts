@@ -133,12 +133,6 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "使用规划器分配",
   ],
   "Calculate reset": ["リセットを計算", "Calcular reinicio", "计算重置"],
-  "This calculator does not change your saved account, plan or optimizer targets.":
-    [
-      "この計算機は、保存済みのアカウント、計画、最適化の目標を変更しません。",
-      "Esta calculadora no modifica tu cuenta guardada, tu plan ni los objetivos del optimizador.",
-      "此计算器不会更改已保存的账号、计划或优化器目标。",
-    ],
   "Invested in {class}": [
     "{class}に使用したポイント",
     "Invertidos en {class}",
@@ -213,11 +207,6 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "导入备份",
   ],
   "Share setup": ["構成を共有", "Compartir configuración", "分享配置"],
-  "Stored on this device · no account required": [
-    "この端末に保存・アカウント不要",
-    "Guardado en este dispositivo · sin cuenta",
-    "保存在此设备上 · 无需账号",
-  ],
   "Import planner backup": [
     "プランナーのバックアップを読み込む",
     "Importar copia del planificador",
@@ -277,52 +266,23 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "{cost} menos que este objetivo, incluidos los requisitos previos.",
     "包含前置条件，比此目标少需{cost}。",
   ],
-  "Your upgrade route": ["強化ルート", "Tu ruta de mejora", "升级路线"],
-  "Follow the purchases in order. Times use cumulative cost, your current balance and a constant income; update your resources after collecting points.":
-    [
-      "表示順に強化してください。所要時間は累積コスト、現在の残高、一定の獲得量を基に計算します。ポイントを受け取ったら所持リソースを更新してください。",
-      "Realiza las compras en orden. Los tiempos usan el coste acumulado, tu saldo actual y unos ingresos constantes; actualiza tus recursos después de recoger puntos.",
-      "请按顺序升级。时间基于累计费用、当前余额和固定收入计算；领取点数后请更新资源。",
-    ],
-  "Your current account already meets these targets.": [
-    "現在のアカウントはすでにすべての目標を満たしています。",
-    "Tu cuenta actual ya cumple estos objetivos.",
-    "当前账号已满足这些目标。",
-  ],
-  "Mastery cap {cap}": [
-    "熟練度上限 {cap}",
-    "Límite de maestría {cap}",
-    "精通上限{cap}",
-  ],
-  "{targets} target upgrades · {unlocks} prerequisite upgrades · Total spent: {cost}":
-    [
-      "目標の強化{targets}回・前提条件の強化{unlocks}回・累積コスト：{cost}",
-      "{targets} mejoras objetivo · {unlocks} mejoras previas necesarias · Gasto acumulado: {cost}",
-      "目标升级{targets}次 · 前置升级{unlocks}次 · 累计花费：{cost}",
-    ],
-  "Unlocks cap {cap}": [
-    "上限{cap}を解放",
-    "Desbloquea el límite {cap}",
-    "解锁上限{cap}",
-  ],
-  Target: ["目標", "Objetivo", "目标"],
-  Unlock: ["条件解放", "Desbloqueo", "解锁"],
   "Mastery tracks": ["クラス別熟練度", "Maestría por clase", "职业精通"],
   "Shape your next upgrades": [
     "次の強化を計画",
     "Planifica tus próximas mejoras",
     "规划下一步升级",
   ],
-  "Shared unlock cap:": [
-    "共通の解放上限：",
-    "Límite compartido:",
-    "共同解锁上限：",
+  "Maximum stat level:": [
+    "各ステータスの最大レベル：",
+    "Nivel máximo por estadística:",
+    "单项属性等级上限：",
   ],
-  ". All classes must reach each gate before any class can cross it.": [
-    "。すべてのクラスが各段階に到達するまで、次の段階には進めません。",
-    ". Todas las clases deben alcanzar cada umbral antes de que alguna pueda superarlo.",
-    "。所有职业达到当前门槛后，才能继续突破。",
-  ],
+  "Class mastery is the sum of its four stats. Shared mastery gates still apply.":
+    [
+      "クラス熟練度は4つのステータスのレベル合計です。共通の熟練度解放条件は引き続き適用されます。",
+      "La maestría de clase es la suma de los niveles de sus cuatro estadísticas. Los requisitos de maestría compartidos siguen vigentes.",
+      "职业精通是四项属性等级之和。共同精通解锁条件仍然适用。",
+    ],
   Locked: ["ロック中", "Bloqueado", "已锁定"],
   Ready: ["強化可能", "Disponible", "可升级"],
   "{class} mastery": ["{class}の熟練度", "Maestría de {class}", "{class}精通"],
@@ -330,6 +290,11 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "現在{level}・ボーナス +{bonus}%",
     "Inicial {level} · Bonificación +{bonus}%",
     "初始{level} · 加成+{bonus}%",
+  ],
+  "Bonus +{bonus}%": [
+    "ボーナス +{bonus}%",
+    "Bonificación +{bonus}%",
+    "加成+{bonus}%",
   ],
   "Maximum level reached": [
     "最大レベルに到達",
@@ -541,7 +506,6 @@ export const translations: Record<string, readonly [string, string, string]> = {
     "Selecciona el enlace y cópialo manualmente.",
     "请选择链接并手动复制。",
   ],
-  "Saved locally": ["端末に保存済み", "Guardado localmente", "已保存到本地"],
   "Saving paused": ["保存を一時停止中", "Guardado en pausa", "保存已暂停"],
   "Not saved": ["未保存", "Sin guardar", "未保存"],
   "Saving…": ["保存中…", "Guardando…", "正在保存…"],
@@ -662,12 +626,6 @@ export const translations: Record<string, readonly [string, string, string]> = {
       "このブラウザーではオフラインキャッシュを利用できません。オンラインでは引き続き利用できます。",
       "La caché sin conexión no está disponible en este navegador. Puedes seguir usando el planificador en línea.",
       "此浏览器不支持离线缓存。你仍可在线使用规划器。",
-    ],
-  "Ready for offline use · use your browser’s Install app / Add to Home Screen option to keep it handy.":
-    [
-      "オフライン利用の準備ができました・ブラウザーの「アプリをインストール」または「ホーム画面に追加」をご利用ください。",
-      "Listo para usar sin conexión · usa la opción Instalar aplicación / Añadir a la pantalla de inicio de tu navegador.",
-      "已可离线使用 · 可通过浏览器的“安装应用”或“添加到主屏幕”方便地访问。",
     ],
   "Language preference could not be saved on this device.": [
     "この端末に言語設定を保存できませんでした。",

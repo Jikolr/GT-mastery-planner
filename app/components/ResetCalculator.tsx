@@ -1,13 +1,20 @@
 import {
   CLASS_IDS,
   CLASS_NAMES,
+  MAX_LEVEL,
   STAT_IDS,
   STAT_NAMES,
+  bonusPercent,
   cumulativeStatCost,
   guardianPointsAfterReset,
+  sanitizeLevel,
+  upgradeCost,
+  type ClassId,
+  type StatId,
 } from "../game/mastery";
 import { useI18n } from "../i18n";
 import type { ResetSetup } from "../state";
+import { ClassIcon } from "./ClassIcon";
 import { LevelInput } from "./LevelInput";
 
 export function ResetCalculator({
@@ -24,6 +31,12 @@ export function ResetCalculator({
   const { t, money } = useI18n();
   const invested = guardianPointsAfterReset(setup.levels, 0);
   const total = guardianPointsAfterReset(setup.levels, setup.guardianPoints);
+
+  function changeLevel(classId: ClassId, statId: StatId, requested: number) {
+    const levels = structuredClone(setup.levels);
+    levels[classId][statId] = sanitizeLevel(requested);
+    onChange({ ...setup, levels });
+  }
 
   return (
     <section
@@ -80,27 +93,81 @@ export function ResetCalculator({
       <h3 className="reset-distribution-heading">
         {t("Current distribution")}
       </h3>
-      <div className="target-grid">
+      <div className="class-grid">
         {CLASS_IDS.map((c) => (
-          <fieldset key={c}>
-            <legend>{t(CLASS_NAMES[c])}</legend>
-            {STAT_IDS.map((s) => (
-              <label key={s}>
-                <span>{t(STAT_NAMES[s])}</span>
-                <LevelInput
-                  value={setup.levels[c][s]}
-                  label={t("{class} {stat} reset level", {
-                    class: t(CLASS_NAMES[c]),
-                    stat: t(STAT_NAMES[s]),
-                  })}
-                  onCommit={(value) => {
-                    const levels = structuredClone(setup.levels);
-                    levels[c][s] = value;
-                    onChange({ ...setup, levels });
-                  }}
-                />
-              </label>
-            ))}
+          <article
+            className={`class-card class-${c}`}
+            role="group"
+            aria-labelledby={`reset-${c}-heading`}
+            key={c}
+          >
+            <div className="class-header">
+              <ClassIcon id={c} />
+              <h3 id={`reset-${c}-heading`}>{t(CLASS_NAMES[c])}</h3>
+            </div>
+            {STAT_IDS.map((s) => {
+              const level = setup.levels[c][s];
+              const nextCost = upgradeCost(level + 1);
+              const label = t("{class} {stat} reset level", {
+                class: t(CLASS_NAMES[c]),
+                stat: t(STAT_NAMES[s]),
+              });
+              return (
+                <div className="stat-row" key={s}>
+                  <div className="stat-info">
+                    <strong>{t(STAT_NAMES[s])}</strong>
+                    <span>
+                      {t("Bonus +{bonus}%", {
+                        bonus: bonusPercent(s, level).toFixed(1),
+                      })}
+                    </span>
+                    <small>
+                      {nextCost === null
+                        ? t("Maximum level reached")
+                        : `${t("Next")}: ${money(nextCost)}`}
+                    </small>
+                    <input
+                      className="level-slider"
+                      type="range"
+                      min={0}
+                      max={MAX_LEVEL}
+                      value={level}
+                      aria-label={label}
+                      onChange={(event) =>
+                        changeLevel(c, s, Number(event.target.value))
+                      }
+                    />
+                  </div>
+                  <div className="stepper">
+                    <button
+                      disabled={level === 0}
+                      onClick={() => changeLevel(c, s, level - 1)}
+                      aria-label={t("Undo {class} {stat}", {
+                        class: t(CLASS_NAMES[c]),
+                        stat: t(STAT_NAMES[s]),
+                      })}
+                    >
+                      −
+                    </button>
+                    <LevelInput
+                      value={level}
+                      label={label}
+                      onCommit={(value) => changeLevel(c, s, value)}
+                    />
+                    <button
+                      disabled={level === MAX_LEVEL}
+                      onClick={() => changeLevel(c, s, level + 1)}
+                      aria-label={t("Increase {class} {stat}", {
+                        class: t(CLASS_NAMES[c]),
+                        stat: t(STAT_NAMES[s]),
+                      })}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
             <div className="reset-class-cost">
               <span>
                 {t("Invested in {class}", { class: t(CLASS_NAMES[c]) })}
@@ -114,14 +181,9 @@ export function ResetCalculator({
                 )}
               </strong>
             </div>
-          </fieldset>
+          </article>
         ))}
       </div>
-      <p className="reset-account-note">
-        {t(
-          "This calculator does not change your saved account, plan or optimizer targets.",
-        )}
-      </p>
     </section>
   );
 }

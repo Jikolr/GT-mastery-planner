@@ -27,13 +27,11 @@ for (const language of ["ja", "es", "zh-CN"] as Language[]) {
     await expect(
       page.getByText("My Raid 日本 中文", { exact: true }),
     ).toBeVisible();
-    await page
-      .locator("input[type=file]")
-      .setInputFiles({
-        name: "bad.json",
-        mimeType: "application/json",
-        buffer: Buffer.from("{bad"),
-      });
+    await page.locator("input[type=file]").setInputFiles({
+      name: "bad.json",
+      mimeType: "application/json",
+      buffer: Buffer.from("{bad"),
+    });
     await expect(
       page.getByText(
         translate(language, {
@@ -132,13 +130,13 @@ test("switches both ways, preserves the whole account, and remembers Korean on r
   ).toHaveValue("51");
   await expect(page.getByRole("heading", { name: "추천 분배" })).toBeVisible();
   await expect(page.locator(".optimizer-result")).toContainText("일");
-  await page.locator(".route-stage summary").first().click();
-  await expect(page.locator(".stage-content").first()).toContainText(
-    "목표 강화",
-  );
-  await expect(page.locator(".stage-content").first()).not.toContainText(
-    "Total spent",
-  );
+  await expect(
+    page.getByRole("heading", {
+      name: translate("ko", "Your upgrade route"),
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(page.locator(".route-stage")).toHaveCount(0);
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "ko");
   expect(
@@ -252,7 +250,19 @@ test("language switching still works when preference storage fails", async ({
   await expect(
     page.getByText("이 기기에 언어 설정을 저장할 수 없습니다."),
   ).toBeVisible();
-  await expect(
-    page.getByText("이 기기에 저장됨", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("이 기기에 저장됨", { exact: true })).toHaveCount(
+    0,
+  );
+  const level = page.getByRole("spinbutton", {
+    name: "전사 공격력 증가 레벨 설정",
+    exact: true,
+  });
+  await level.fill("3");
+  await level.press("Tab");
+  expect(
+    await page.evaluate(
+      (key) => JSON.parse(localStorage.getItem(key)!).planned.warrior.atk,
+      STORAGE_KEY,
+    ),
+  ).toBe(3);
 });

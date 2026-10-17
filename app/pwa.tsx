@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useI18n } from "./i18n";
 export function OfflineStatus() {
   const { t } = useI18n();
-  const [ready, setReady] = useState(false);
   const [refresh, setRefresh] = useState<null | (() => void)>(null);
   const [error, setError] = useState(false);
   useEffect(() => {
@@ -17,17 +16,6 @@ export function OfflineStatus() {
       .then(({ registerSW }) => {
         if (!active) return;
         const update = registerSW({
-          onRegisteredSW: (_url, registration) => {
-            if (
-              active &&
-              registration?.active?.state === "activated" &&
-              navigator.serviceWorker.controller
-            )
-              setReady(true);
-          },
-          onOfflineReady: () => {
-            if (active) setReady(true);
-          },
           onNeedRefresh: () => {
             if (active) setRefresh(() => () => void update(true));
           },
@@ -58,11 +46,5 @@ export function OfflineStatus() {
         )}{" "}
       </p>
     );
-  return ready ? (
-    <p className="offline-status" role="status">
-      {t(
-        "Ready for offline use · use your browser’s Install app / Add to Home Screen option to keep it handy.",
-      )}{" "}
-    </p>
-  ) : null;
+  return null;
 }
