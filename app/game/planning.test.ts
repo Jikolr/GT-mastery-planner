@@ -8,9 +8,11 @@ import {
   cumulativeStatCost,
   editPlan,
   emptyLevels,
+  guardianPointsAfterReset,
   isLegalDistribution,
   isLevels,
   optimizeTarget,
+  remainingPoints,
   routeStages,
   targetDate,
   totalPlannedCost,
@@ -19,7 +21,7 @@ import {
 } from "./mastery";
 
 describe("plan invariants", () => {
-  it("does not return an invalid calendar date for extreme valid targets", () => {
+  it("does not return an invalid calendar date for extreme point deficits", () => {
     expect(targetDate(new Date(), 20442800000, 1)).toBeNull();
   });
   it("rejects reductions that remove another class's prerequisite, without mutation", () => {
@@ -51,7 +53,7 @@ describe("plan invariants", () => {
     "rejects malformed level maps",
     (value) => expect(isLevels(value)).toBe(false),
   );
-  it.each([-1, 1.5, NaN, Infinity, 91])(
+  it.each([-1, 1.5, NaN, Infinity, 65, 90])(
     "rejects invalid account levels",
     (value) => {
       const levels = emptyLevels();
@@ -71,6 +73,24 @@ describe("plan invariants", () => {
 });
 
 describe("optimizer", () => {
+  it("preserves the target budget when rebuilding the current levels after a reset", () => {
+    const current = emptyLevels(),
+      target = emptyLevels();
+    for (const c of CLASS_IDS) {
+      current[c].atk = 10;
+      target[c].atk = 11;
+    }
+    const beforeReset = optimizeTarget(current, target),
+      afterReset = optimizeTarget(emptyLevels(), target),
+      resetPoints = guardianPointsAfterReset(current, 500000);
+    expect(beforeReset.error).toBeUndefined();
+    expect(afterReset.error).toBeUndefined();
+    expect(resetPoints).toBe(4420000);
+    expect(beforeReset.cost).toBe(640000);
+    expect(afterReset.cost).toBe(4560000);
+    expect(remainingPoints(500000, beforeReset.cost)).toBe(-140000);
+    expect(remainingPoints(resetPoints, afterReset.cost)).toBe(-140000);
+  });
   it("adapts an old preset to an advanced account, including missing prerequisites", () => {
     const initial = emptyLevels();
     for (const c of CLASS_IDS) initial[c].atk = 20;
@@ -112,13 +132,14 @@ describe("optimizer", () => {
     });
     expect(stages.flatMap((s) => s.steps)).toEqual(result.steps);
   });
-  it("supports every stat at 90 and completes below the guard limit", () => {
+  it("supports every stat at 64 and completes below the guard limit", () => {
     const requested = emptyLevels();
     for (const c of CLASS_IDS)
       for (const s of STAT_IDS) requested[c][s] = MAX_LEVEL;
     const result = optimizeTarget(emptyLevels(), requested);
     expect(result.plan).toEqual(requested);
-    expect(result.steps).toHaveLength(1440);
+    expect(result.steps).toHaveLength(1024);
+    expect(result.cost).toBe(2020800000);
     expect(result.error).toBeUndefined();
   });
   // Replaying 200 routes includes thousands of assertions, not just optimizer runtime.
@@ -138,7 +159,7 @@ describe("optimizer", () => {
       }
       const targets = emptyLevels();
       for (const c of CLASS_IDS)
-        for (const s of STAT_IDS) targets[c][s] = random(91);
+        for (const s of STAT_IDS) targets[c][s] = random(MAX_LEVEL + 1);
       const original = structuredClone(initial),
         result = optimizeTarget(initial, targets),
         replay = structuredClone(initial);

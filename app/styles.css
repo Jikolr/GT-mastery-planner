@@ -181,7 +181,6 @@ html[lang="ko"] {
   border-radius: 10px;
   font-weight: 700;
 }
-.speculative-note,
 .storage-warning {
   margin: 0 0 16px;
   padding: 12px 14px;
@@ -191,9 +190,6 @@ html[lang="ko"] {
   border-radius: 10px;
   font-size: 12px;
   line-height: 1.5;
-}
-.speculative-note strong {
-  color: #ffd477;
 }
 .storage-warning p {
   margin-bottom: 8px;
@@ -268,6 +264,49 @@ html[lang="ko"] {
 }
 .metric.highlight strong {
   color: var(--accent);
+}
+.reset-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 32px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #35546a;
+  border-radius: 14px;
+  background: #101e29;
+}
+.reset-total {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.reset-total span,
+.reset-total small {
+  display: block;
+  color: #b5c9d9;
+  font-size: 12px;
+}
+.reset-total output {
+  display: block;
+  margin: 8px 0;
+  color: #a1e2ff;
+  font-size: 22px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+.reset-help {
+  flex: 1 1 260px;
+  min-width: 0;
+  color: #b5c9d9;
+  font-size: 12px;
+}
+.reset-help summary {
+  cursor: pointer;
+  color: #a1e2ff;
+  font-weight: 650;
+}
+.reset-help p {
+  margin: 10px 0 0;
 }
 .summary-card.is-negative {
   border-color: #7b493f;

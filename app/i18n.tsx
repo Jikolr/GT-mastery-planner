@@ -52,9 +52,6 @@ export const korean: Record<string, string> = {
   Planner: "플래너",
   "Planner views": "플래너 화면",
   "Target optimizer": "목표 최적화",
-  "Estimated levels:": "추정 구간:",
-  "costs for levels 71–90 are speculative projections assuming the observed ×2.5 scaling continues after level 70.":
-    "71~90레벨의 비용은 70레벨 이후에도 기존의 2.5배 증가 규칙이 유지된다고 가정한 추정치입니다.",
   "Your resources": "보유 자원",
   "Your target budget": "목표 달성 예산",
   "Plan without limits": "자유롭게 강화 계획 세우기",
@@ -64,6 +61,16 @@ export const korean: Record<string, string> = {
   "Optimize this plan": "이 계획 최적화",
   "Edit current levels": "현재 레벨 수정",
   "Current Guardian Points": "현재 가디언 포인트",
+  "Guardian Points after reset": "초기화 후 가디언 포인트",
+  "Includes {points} invested in your current levels.":
+    "현재 레벨에 사용한 {points}가 포함됩니다.",
+  "How to plan a reset": "초기화 후 계획 세우기",
+  "This is your current balance plus the points spent across all 16 current levels.":
+    "현재 보유 포인트에 현재 16개 능력치의 레벨을 올리는 데 사용한 포인트를 모두 더한 값입니다.",
+  "Note this total, set all current levels to 0, enter the total as Current Guardian Points, then enter your targets in Target optimizer.":
+    "이 합계를 기록한 다음 현재 레벨을 모두 0으로 설정하고, 합계를 현재 가디언 포인트에 입력하세요. 그런 다음 목표 최적화에서 목표 레벨을 입력하세요.",
+  "Saved plans, targets and presets above level 64 were reduced to the current limit. Mastery prerequisites were added where needed; your current account levels and resources were preserved.":
+    "저장된 계획, 목표 및 프리셋에서 64를 초과한 레벨을 현재 상한으로 낮췄습니다. 필요한 숙련도 선행 조건을 추가했으며, 현재 계정 레벨과 자원은 유지했습니다.",
   "Guardian Points / hour": "시간당 가디언 포인트",
   "Target route cost": "목표 경로 비용",
   "Planned upgrade cost": "계획된 강화 비용",
@@ -123,7 +130,6 @@ export const korean: Record<string, string> = {
   "Initial {level} · Bonus +{bonus}%": "현재 {level} · 추가 효과 +{bonus}%",
   "Maximum level reached": "최대 레벨 도달",
   Next: "다음 강화",
-  "Estimated next": "다음 강화 예상 비용",
   "{class} {stat} planned level": "{class} {stat} 계획 레벨",
   "Undo {class} {stat}": "{class} {stat} 감소",
   "Set {class} {stat} level": "{class} {stat} 레벨 설정",

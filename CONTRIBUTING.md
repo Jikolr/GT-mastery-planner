@@ -8,7 +8,7 @@
 
 Please do not commit generated directories such as `desktop-dist`, `release`, `.next`, or `dist`.
 
-Keep cost formulas, gates and optimization independent of React in `app/game/mastery.ts`. Tests should check every intermediate route is legal, never decreases real levels, and reaches all requested targets. Preserve the explicit speculative status of levels 71–90; do not present extrapolated prices as observed game data.
+Keep cost formulas, gates and optimization independent of React in `app/game/mastery.ts`. Tests should check every intermediate route is legal, never decreases real levels, and reaches all requested targets. The individual-stat cap is 64; check boundary upgrades against observed destination-level costs and do not extrapolate beyond the cap. Reset totals must include cumulative spending on all 16 real account levels plus the current Guardian Point balance, without including planned upgrades or targets.
 
 For persistence changes, add migration and corrupt-input tests. Never test with, clear or overwrite a user's real local storage/profile; browser and desktop smoke tests use isolated data. Keep the application ID and existing data directory stable across updates.
 
